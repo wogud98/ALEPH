@@ -2,7 +2,7 @@
 
 SKT ALEPH 강사님과 동기들에게 제가 어떤 길을 걸어왔고 어떻게 일하는 사람인지 근거와 함께 보여주는 한 페이지입니다.
 
-- 결과물: https://github.com/wogud98/ALEPH/tree/main/challenge/T01/index
+- 결과물: https://wogud98.github.io/ALEPH/challenge/T01/
 - 소스: https://github.com/wogud98/ALEPH/tree/main/challenge/T01
 
 ## 공개 범위 점검표
