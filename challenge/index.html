@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>지나온 경로와 강점 | 한 페이지 소개</title>
+<meta name="description" content="SKT ALEPH 강사·동기에게 보여주는 한 페이지 소개">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+  // 첫 화면이 그려지기 전에 움직임 설정을 적용 (깜빡임 방지)
+  (function () {
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    try {
+      var saved = localStorage.getItem('reduce-motion');
+      if (saved !== null) reduce = saved === '1';
+    } catch (e) {}
+    document.documentElement.classList.add(reduce ? 'reduce-motion' : 'motion-ok');
+  })();
+</script>
+<style>
+  :root {
+    --paper: #EDF1EB;
+    --panel: #F7F9F5;
+    --ink: #1B2620;
+    --muted: #55635B;
+    --line: #C7D2C9;
+    --contour: #CDB08F;
+    --sea: #1F5A86;
+    --route: #A8321F;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    word-break: keep-all;
+  }
+  a { color: var(--sea); text-underline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; border-radius: 2px; }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 28px 32px 56px; }
+
+  /* 머리말 */
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+  h1 { font-size: 1.75rem; line-height: 1.4; letter-spacing: -0.01em; margin: 0 0 6px; font-weight: 700; max-width: 36em; }
+  .now { margin: 0; color: var(--muted); }
+  .now strong { color: var(--ink); font-weight: 500; }
+
+  .motion-btn {
+    font: inherit; font-size: 0.9375rem;
+    background: var(--panel); color: var(--ink);
+    border: 1px solid var(--ink); border-radius: 999px;
+    padding: 6px 14px; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .motion-btn .box {
+    width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 3px;
+    display: inline-grid; place-items: center; font-size: 12px; line-height: 1;
+  }
+  .motion-btn[aria-pressed="true"] .box::after { content: "✓"; }
+
+  h2 { font-size: 1.125rem; margin: 0 0 8px; font-weight: 700; }
+
+  /* 경로 지도 */
+  .route { margin-top: 24px; }
+  .map {
+    position: relative; overflow: hidden;
+    border: 1px solid var(--line); border-radius: 4px;
+    background: var(--panel);
+    padding: 18px 24px 14px;
+  }
+  .contours { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .contours use { fill: none; stroke: var(--contour); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+  .waypoints {
+    position: relative; list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;
+  }
+  .waypoints::before {
+    content: ""; position: absolute; left: 7px; right: 7px; top: 7px; height: 3px;
+    background: repeating-linear-gradient(90deg, var(--route) 0 10px, transparent 10px 16px);
+    transform-origin: left center;
+  }
+  .waypoints li { position: relative; padding-top: 26px; }
+  .waypoints li::before {
+    content: ""; position: absolute; top: 0; left: 0;
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--panel); border: 3px solid var(--route);
+  }
+  .waypoints li.here::before { background: var(--route); box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--route); }
+  .waypoints .year, .waypoints strong, .waypoints .note {
+    text-shadow: 0 0 2px var(--panel), 0 0 4px var(--panel), 0 0 6px var(--panel), 0 0 8px var(--panel);
+  }
+  .year { display: block; font-size: 0.875rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .waypoints strong { display: block; font-weight: 700; }
+  .waypoints .note { display: block; font-size: 0.875rem; color: var(--muted); line-height: 1.45; }
+  .here .year { color: var(--route); font-weight: 700; }
+
+  /* 한 번만 일어나는 움직임: 경로가 그려짐 */
+  .motion-ok .waypoints::before { animation: draw 1.4s ease-out both; }
+  .motion-ok .waypoints li { animation: appear 0.5s ease-out both; }
+  .motion-ok .waypoints li:nth-child(2) { animation-delay: 0.25s; }
+  .motion-ok .waypoints li:nth-child(3) { animation-delay: 0.5s; }
+  .motion-ok .waypoints li:nth-child(4) { animation-delay: 0.75s; }
+  .motion-ok .waypoints li:nth-child(5) { animation-delay: 1s; }
+  @keyframes draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* 일하는 방식 */
+  .ways-section { margin-top: 24px; }
+  .ways { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 2px solid var(--ink); }
+  .way { padding: 14px 24px 4px 0; }
+  .way + .way { padding-left: 24px; border-left: 1px solid var(--line); }
+  h3 { font-size: 1.25rem; line-height: 1.35; margin: 0 0 6px; }
+  .result { margin: 0 0 6px; }
+  .proof { margin: 0 0 6px; font-size: 0.9375rem; color: var(--muted); }
+  .toggle {
+    font: inherit; font-size: 0.9375rem; font-weight: 500;
+    background: none; color: var(--sea); border: 0; padding: 4px 0; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .toggle .chev { display: inline-block; transition: transform 0.2s; }
+  .toggle[aria-expanded="true"] .chev { transform: rotate(90deg); }
+  .reduce-motion .toggle .chev { transition: none; }
+  .star[hidden] { display: none; }
+  .star { margin: 8px 0 8px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+  .star dt { font-weight: 700; }
+  .star dd { margin: 0; }
+  .motion-ok .star:not([hidden]) { animation: appear 0.25s ease-out; }
+
+  /* 아래쪽 */
+  .more { margin-top: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .likes { margin: 0; padding-left: 1.2em; }
+  .likes li + li { margin-top: 6px; }
+  .about p { margin: 0 0 10px; }
+  .legend { margin: 0; padding-left: 1.2em; }
+
+  @media (max-width: 900px) {
+    .page { padding: 28px 20px 48px; }
+    h1 { font-size: 1.375rem; }
+    .top { flex-direction: column; }
+    .waypoints { grid-template-columns: 1fr; gap: 14px; }
+    .waypoints::before { left: 7px; right: auto; top: 8px; bottom: 8px; width: 3px; height: auto;
+      background: repeating-linear-gradient(180deg, var(--route) 0 10px, transparent 10px 16px); }
+    .waypoints li { padding: 0 0 0 32px; }
+    .motion-ok .waypoints::before { animation: none; }
+    .ways { grid-template-columns: 1fr; }
+    .way, .way + .way { padding: 16px 0 8px; border-left: 0; }
+    .way + .way { border-top: 1px solid var(--line); }
+    .more { grid-template-columns: 1fr; gap: 32px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header class="top">
+    <div>
+      <h1>군에서 사람과 장비를 책임졌고, 국방 소프트웨어를 고쳤고, 지금은 네트워크와 보안을 배우고 있어요.</h1>
+      <p class="now">지금: <strong>SKT ALEPH에서 네트워크, 보안, AI 활용을 배우는 중</strong></p>
+    </div>
+    <button type="button" class="motion-btn" id="motion-toggle" aria-pressed="false">
+      <span class="box" aria-hidden="true"></span>움직임 줄이기
+    </button>
+  </header>
+
+  <section class="route" aria-labelledby="route-title">
+    <h2 id="route-title">지나온 경로</h2>
+    <div class="map">
+      <svg class="contours" aria-hidden="true" focusable="false" viewBox="0 0 1200 190" preserveAspectRatio="xMidYMid slice">
+        <defs><path id="hill" d="M-120,0 C-120,-50 -60,-80 0,-75 C70,-70 130,-40 125,5 C120,50 60,75 -5,70 C-70,65 -120,45 -120,0Z"/></defs>
+        <use href="#hill" transform="translate(1010 95) scale(1.35)"/>
+        <use href="#hill" transform="translate(1010 95) scale(1.08)"/>
+        <use href="#hill" transform="translate(1010 95) scale(0.81)"/>
+        <use href="#hill" transform="translate(1010 95) scale(0.54)"/>
+        <use href="#hill" transform="translate(1010 95) scale(0.30)"/>
+        <use href="#hill" transform="translate(330 40) scale(0.90)"/>
+        <use href="#hill" transform="translate(330 40) scale(0.72)"/>
+        <use href="#hill" transform="translate(330 40) scale(0.54)"/>
+        <use href="#hill" transform="translate(330 40) scale(0.36)"/>
+      </svg>
+      <ol class="waypoints">
+        <li>
+          <span class="year">2017</span>
+          <strong>지능로봇공학 전공</strong>
+          <span class="note">정역학, 선형대수, 영상처리 등을 학습</span>
+        </li>
+        <li>
+          <span class="year">2021</span>
+          <strong>ROTC 59기 임관</strong>
+          <span class="note">소대장, 본부중대장 임무 수행</span>
+        </li>
+        <li>
+          <span class="year">2023.07</span>
+          <strong>웹 풀스택 교육</strong>
+          <span class="note">Spring Boot와 Vue.js로 지도 기반 매물 조회 사이트 구현</span>
+        </li>
+        <li>
+          <span class="year">2024.02</span>
+          <strong>국방 SW 기업</strong>
+          <span class="note">국방 M&amp;S 프로그램(지상군자원소요산정프로그램) 유지보수, 계룡대 근무. C++, VB6, Oracle, Linux(GDB) 사용</span>
+        </li>
+        <li class="here" aria-current="step">
+          <span class="year">2026.09 – 지금</span>
+          <strong>SKT ALEPH</strong>
+          <span class="note">네트워크, 보안, AI 활용을 배우며 첫 공개 결과물 제작</span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="ways-section" aria-labelledby="ways-title">
+    <h2 id="ways-title">강점과 취향</h2>
+    <div class="ways">
+
+      <article class="way">
+        <h3>침착함</h3>
+        <p class="result">상급부대 불시 상황조치훈련 평가에서 모든 항목 통과(올그린)</p>
+        <p class="proof">근거: 당직사령 근무 중 받은 평가 결과</p>
+        <button type="button" class="toggle" aria-expanded="false" aria-controls="star-calm">
+          <span class="chev" aria-hidden="true">▸</span>상황, 행동, 결과 보기
+        </button>
+        <dl class="star" id="star-calm" hidden>
+          <dt>상황</dt><dd>당직사령으로 근무하던 중 상급부대의 불시 상황조치훈련 평가가 시작됐어요.</dd>
+          <dt>행동</dt><dd>당황하지 않고 침착하게 체크리스트를 한 줄씩 따라가며 보고와 조치를 했어요.</dd>
+          <dt>결과</dt><dd>평가 항목 전체에서 올그린을 받았어요.</dd>
+        </dl>
+      </article>
+
+      <article class="way">
+        <h3>망설여지면 일단 시작</h3>
+        <p class="result">멈춰 있다고 느낀 자리에서 나와 ALEPH에 합류하고, 첫 결과물을 바로 공개</p>
+        <button type="button" class="toggle" aria-expanded="false" aria-controls="star-drive">
+          <span class="chev" aria-hidden="true">▸</span>상황, 행동, 결과 보기
+        </button>
+        <dl class="star" id="star-drive" hidden>
+          <dt>상황</dt><dd>국방 SW 유지보수를 하며 제 기술이 오래된 환경에 머물러 있다고 느꼈어요.</dd>
+          <dt>행동</dt><dd>2026년 9월 퇴사하고 SKT ALEPH에서 네트워크, 보안, AI 활용을 배우기 시작했어요.</dd>
+          <dt>결과</dt><dd>지금 보고 있는 이 페이지를 직접 만들어 공개했어요.</dd>
+        </dl>
+      </article>
+
+      <article class="way">
+        <h3>문제 해결</h3>
+        <p class="result">졸음이라는 막연한 상태를 눈 깜빡임이라는 잴 수 있는 신호로 바꿔 해결</p>
+        <p class="proof">근거: 안구운동인식 졸음운전 방지 졸업작품</p>
+        <button type="button" class="toggle" aria-expanded="false" aria-controls="star-finish">
+          <span class="chev" aria-hidden="true">▸</span>상황, 행동, 결과 보기
+        </button>
+        <dl class="star" id="star-finish" hidden>
+          <dt>상황</dt><dd>졸업작품으로 졸음운전을 막는 시스템을 만들어야 했는데, 졸음은 눈에 보이지 않는 상태였어요.</dd>
+          <dt>행동</dt><dd>졸음을 눈 깜빡임으로 측정하기로 하고, OpenCV로 안구를 인식해 깜빡임의 속도와 주기를 계산했어요.</dd>
+          <dt>결과</dt><dd>깜빡임 속도와 주기가 기준을 벗어나면 경고하는 시스템을 졸업작품으로 완성했어요.</dd>
+        </dl>
+      </article>
+
+    </div>
+  </section>
+
+  <div class="more">
+    <section aria-labelledby="likes-title">
+      <h2 id="likes-title">좋아하는 것</h2>
+      <ul class="likes">
+        <li>꾸준히 해온 웨이트 트레이닝</li>
+        <li>여유를 즐기며 마시는 커피 한 잔, 옥상에서 바람 쐬며 먼 산 보기</li>
+        <li>여행, 운동, 일 등에서 부담 없이 새로운 것 해보기</li>
+        <li>인생영화: 월터의 상상은 현실이 된다, 포레스트 검프, 트루먼 쇼, 조 블랙의 사랑</li>
+      </ul>
+    </section>
+
+    <section class="about" aria-labelledby="about-title">
+      <h2 id="about-title">이 페이지에 대해</h2>
+      <p>SKT ALEPH 강사님과 동기들에게 제가 어떤 길을 걸어왔고 어떻게 일하는 사람인지 근거와 함께 보여주려고 만든 페이지예요.</p>
+      <p>일부러 넣지 않은 것:</p>
+      <ul class="legend">
+        <li>연락처와 사는 곳</li>
+        <li>다녔던 회사와 부대 이름</li>
+        <li>학교 이름과 성적</li>
+      </ul>
+    </section>
+  </div>
+
+</main>
+<script>
+  (function () {
+    var root = document.documentElement;
+
+    // 움직임 줄이기 버튼
+    var motionBtn = document.getElementById('motion-toggle');
+    var reduce = root.classList.contains('reduce-motion');
+    function applyMotion() {
+      root.classList.toggle('reduce-motion', reduce);
+      root.classList.toggle('motion-ok', !reduce);
+      motionBtn.setAttribute('aria-pressed', String(reduce));
+    }
+    applyMotion();
+    motionBtn.addEventListener('click', function () {
+      reduce = !reduce;
+      applyMotion();
+      try { localStorage.setItem('reduce-motion', reduce ? '1' : '0'); } catch (e) {}
+    });
+
+    // 상황, 행동, 결과 펼치기
+    document.querySelectorAll('.toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var open = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!open));
+        document.getElementById(btn.getAttribute('aria-controls')).hidden = open;
+      });
+    });
+
+  })();
+</script>
+</body>
+</html>
