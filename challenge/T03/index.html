@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사진 한 장, 글자 한 줄</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@800&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #F5F5F7;
+    --surface: #FFFFFF;
+    --text: #1D1D1F;
+    --text-2: #6E6E73;
+    --text-3: #86868B;
+    --hair: rgba(0, 0, 0, 0.09);
+    --fill: #E8E8ED;
+    --fill-2: #D2D2D7;
+    --accent: #0071E3;
+    --accent-hover: #0077ED;
+    --danger: #D70015;
+    --ok: #248A3D;
+    --warn: #B25000;
+    --thumb-shadow: 0 0.5px 4px rgba(0, 0, 0, 0.28), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+    --stage-shadow: 0 24px 60px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+    --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --surface: #1C1C1E;
+      --text: #F5F5F7;
+      --text-2: #A1A1A6;
+      --text-3: #8E8E93;
+      --hair: rgba(255, 255, 255, 0.1);
+      --fill: #2C2C2E;
+      --fill-2: #3A3A3C;
+      --accent: #0A84FF;
+      --accent-hover: #409CFF;
+      --danger: #FF453A;
+      --ok: #30D158;
+      --warn: #FF9F0A;
+      --stage-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 400 15px/1.5 var(--font);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+  }
+
+  /* 머리말 */
+  .head {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 40px 32px 24px;
+  }
+  .head h1 {
+    margin: 0;
+    font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.12;
+  }
+  .head p { margin: 8px 0 0; color: var(--text-2); font-size: 1.02rem; }
+
+  /* 작업대 */
+  .bench {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 32px 56px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 40px;
+    align-items: start;
+  }
+  .stage {
+    position: sticky;
+    top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    min-height: 0;
+  }
+  #card {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: calc(100vh - 280px);
+    box-shadow: var(--stage-shadow);
+  }
+  .readout { margin: 0; font-size: 0.82rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .stage .msg { width: min(100%, 520px); }
+
+  /* 오른쪽 설정 패널 */
+  .inspector { display: grid; gap: 28px; }
+  .section-title { margin: 0 0 8px 16px; font-size: 0.82rem; font-weight: 600; color: var(--text-2); }
+  .group { background: var(--surface); border-radius: 16px; padding: 4px 16px; }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 48px;
+    padding: 10px 0;
+  }
+  .row + .row, .row + .stack, .stack + .row, .stack + .stack { border-top: 0.5px solid var(--hair); }
+  .stack { padding: 12px 0; display: grid; gap: 8px; }
+  .label { font-weight: 500; }
+  .sub { font-size: 0.82rem; color: var(--text-3); margin: 0; }
+  .val { font-size: 0.85rem; color: var(--text-2); font-variant-numeric: tabular-nums; min-width: 3.5em; text-align: right; }
+  .stack .head-line { display: flex; justify-content: space-between; align-items: baseline; }
+  .note { font-size: 0.8rem; color: var(--text-3); margin: 8px 16px 0; }
+
+  /* 사진 넣기 */
+  .drop {
+    position: relative;
+    display: grid;
+    place-items: center;
+    gap: 2px;
+    margin: 12px 0;
+    padding: 22px 12px;
+    border: 1.5px dashed var(--fill-2);
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .drop:hover { background: var(--bg); }
+  .drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop strong { font-weight: 600; color: var(--accent); }
+  .drop:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* 입력 요소 */
+  textarea, input[type=text], select {
+    width: 100%;
+    font: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    letter-spacing: inherit;
+  }
+  textarea { min-height: 92px; resize: vertical; line-height: 1.55; }
+  select { appearance: none; padding-right: 32px; background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%), linear-gradient(135deg, var(--text-2) 50%, transparent 50%); background-position: calc(100% - 17px) 52%, calc(100% - 12px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+  textarea:focus, input[type=text]:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  .counter { font-size: 0.78rem; color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
+  .counter.over { color: var(--danger); font-weight: 600; }
+
+  input[type=range] {
+    --p: 50%;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 24px;
+    background: transparent;
+    margin: 0;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 2px;
+    background: linear-gradient(to right, var(--accent) var(--p), var(--fill-2) var(--p));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #FFFFFF; box-shadow: var(--thumb-shadow);
+    margin-top: -9px;
+    transition: transform 0.15s;
+  }
+  input[type=range]:active::-webkit-slider-thumb { transform: scale(1.12); }
+  input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--fill-2); }
+  input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+  input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: #FFFFFF; box-shadow: var(--thumb-shadow); }
+  input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+
+  /* 세그먼트 */
+  .seg {
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    background: var(--fill);
+    border-radius: 9px;
+    padding: 2px;
+    min-width: 180px;
+  }
+  .seg.full { display: grid; width: 100%; }
+  .seg label { position: relative; }
+  .seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .seg span {
+    display: block;
+    text-align: center;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+  }
+  .seg input:checked + span { background: var(--surface); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.05); font-weight: 600; }
+  .seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* 색 고르기 */
+  .swatches { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .sw {
+    position: relative;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.18);
+  }
+  .sw[aria-pressed=true]::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+  }
+  .sw.custom { background: conic-gradient(#FF3B30, #FF9500, #FFCC00, #34C759, #00C7BE, #007AFF, #AF52DE, #FF2D55, #FF3B30); }
+  .sw.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: 0; padding: 0; }
+  .sw:focus-visible, .sw.custom:focus-within { outline: 2px solid var(--accent); outline-offset: 5px; }
+
+  /* 단추 */
+  button, .filebtn span {
+    font: 600 0.9rem/1 var(--font);
+    letter-spacing: -0.01em;
+    border: 0;
+    border-radius: 980px;
+    padding: 10px 18px;
+    cursor: pointer;
+    background: var(--fill);
+    color: var(--text);
+    transition: background 0.2s, opacity 0.2s, transform 0.1s;
+  }
+  button:hover, .filebtn:hover span { background: var(--fill-2); }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.4; cursor: default; transform: none; }
+  button:disabled:hover { background: var(--fill); }
+  button.primary { background: var(--accent); color: #FFFFFF; font-size: 1rem; padding: 13px 26px; }
+  button.primary:hover { background: var(--accent-hover); }
+  button.link { background: transparent; color: var(--accent); padding: 6px 4px; font-weight: 500; }
+  button.link:hover { background: transparent; text-decoration: underline; }
+  button.link.danger { color: var(--danger); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filebtn { position: relative; display: inline-block; }
+  .filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .filebtn:focus-within span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { padding: 8px 14px; font-weight: 500; font-size: 0.86rem; }
+
+  /* 안내 상자 */
+  .msg {
+    margin: 0 0 12px;
+    padding: 10px 12px 10px 30px;
+    border-radius: 12px;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    white-space: pre-line;
+    position: relative;
+  }
+  .msg::before { content: ""; position: absolute; left: 12px; top: 16px; width: 8px; height: 8px; border-radius: 50%; }
+  .msg.error { background: color-mix(in srgb, var(--danger) 9%, transparent); }
+  .msg.error::before { background: var(--danger); }
+  .msg.notice { background: color-mix(in srgb, var(--warn) 11%, transparent); }
+  .msg.notice::before { background: var(--warn); }
+  .msg.ok { background: color-mix(in srgb, var(--ok) 10%, transparent); }
+  .msg.ok::before { background: var(--ok); }
+  .group > .msg:first-child { margin-top: 12px; }
+
+  /* 템플릿 목록 */
+  .tlist { list-style: none; margin: 0; padding: 0; }
+  .tlist li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 0.5px solid var(--hair); }
+  .tcheck { width: 16px; color: var(--accent); font-weight: 700; flex: none; }
+  .tbody { flex: 1; min-width: 0; }
+  .tname { font-weight: 600; overflow-wrap: anywhere; }
+  .tmeta { font-size: 0.8rem; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tbtns { display: flex; gap: 2px; flex: none; }
+  .empty { color: var(--text-3); font-size: 0.86rem; margin: 0; padding: 12px 0; border-top: 0.5px solid var(--hair); }
+
+  footer { max-width: 1320px; margin: 0 auto; padding: 0 32px 40px; font-size: 0.8rem; color: var(--text-3); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (max-width: 900px) {
+    .head { padding: 28px 18px 18px; }
+    .bench { grid-template-columns: minmax(0, 1fr); padding: 0 18px 40px; gap: 28px; }
+    .stage { position: static; }
+    #card { max-height: 48vh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<header class="head">
+  <h1>사진 한 장, 글자 한 줄</h1>
+  <p>사진을 고르고, 한 줄을 쓰고, 저장하세요. 로그인 없이 이 브라우저 안에서만 작동합니다.</p>
+</header>
+
+<main class="bench">
+  <section class="stage" aria-label="미리보기와 저장">
+    <canvas id="card" width="1080" height="1350" aria-label="카드 미리보기"></canvas>
+    <p class="readout" id="readout"></p>
+    <div id="layoutWarn" class="msg notice" role="status" hidden></div>
+    <button type="button" id="downloadBtn" class="primary">PNG로 저장</button>
+    <div id="fileCheck" class="msg ok" role="status" hidden></div>
+  </section>
+
+  <div class="inspector">
+    <section aria-labelledby="t-photo">
+      <h2 class="section-title" id="t-photo">사진</h2>
+      <div class="group">
+        <label class="drop" id="dropZone">
+          <input type="file" id="imageInput" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
+          <strong>사진 선택</strong>
+          <span class="sub">또는 여기로 끌어다 놓기 · PNG, JPEG · 20MB 이하</span>
+        </label>
+        <div id="imageError" class="msg error" role="alert" hidden></div>
+        <div id="imageNotice" class="msg notice" role="status" hidden></div>
+        <div class="row">
+          <span class="sub" id="imageInfo">사진이 없으면 배경색으로 채웁니다.</span>
+          <button type="button" id="clearImageBtn" class="link" hidden>사진 빼기</button>
+        </div>
+        <div class="stack">
+          <span class="label">배경색</span>
+          <div class="swatches" id="bgSwatches" data-target="bg"></div>
+          <p class="sub">사진이 없거나 투명한 부분을 채웁니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="t-ratio">
+      <h2 class="section-title" id="t-ratio">화면비</h2>
+      <div class="group">
+        <div class="stack">
+          <div class="seg full" role="radiogroup" aria-labelledby="t-ratio">
+            <label><input type="radio" name="ratio" value="1:1"><span>1:1 정사각</span></label>
+            <label><input type="radio" name="ratio" value="4:5"><span>4:5 세로</span></label>
+            <label><input type="radio" name="ratio" value="9:16"><span>9:16 스토리</span></label>
+          </div>
+          <p class="sub">사진은 비율에 맞춰 가운데를 기준으로 채우고, 넘치는 부분은 잘립니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="t-text">
+      <h2 class="section-title" id="t-text">글자</h2>
+      <div class="group">
+        <div class="stack">
+          <label for="text" class="sr">문구</label>
+          <textarea id="text" spellcheck="false" placeholder="여기에 한 줄을 쓰세요. Enter로 줄을 바꿉니다."></textarea>
+          <span class="counter" id="textCounter"></span>
+        </div>
+        <div class="row">
+          <label class="label" for="font">글꼴</label>
+          <div style="width:62%"><select id="font"></select></div>
+        </div>
+        <div class="stack">
+          <div class="head-line"><label class="label" for="size">크기</label><output class="val" id="sizeOut" for="size"></output></div>
+          <input type="range" id="size" min="16" max="240" step="1">
+        </div>
+        <div class="stack">
+          <span class="label">색</span>
+          <div class="swatches" id="colorSwatches" data-target="color"></div>
+        </div>
+        <div class="row">
+          <span class="label" id="l-effect">효과</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-effect">
+            <label><input type="radio" name="effect" value="none"><span>없음</span></label>
+            <label><input type="radio" name="effect" value="shadow"><span>그림자</span></label>
+            <label><input type="radio" name="effect" value="outline"><span>테두리</span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span class="label" id="l-align">정렬</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-align">
+            <label><input type="radio" name="align" value="left"><span>왼쪽</span></label>
+            <label><input type="radio" name="align" value="center"><span>가운데</span></label>
+            <label><input type="radio" name="align" value="right"><span>오른쪽</span></label>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="head-line"><label class="label" for="x">가로 위치</label><output class="val" id="xOut" for="x"></output></div>
+          <input type="range" id="x" min="0" max="100" step="1">
+        </div>
+        <div class="stack">
+          <div class="head-line"><label class="label" for="y">세로 위치</label><output class="val" id="yOut" for="y"></output></div>
+          <input type="range" id="y" min="0" max="100" step="1">
+        </div>
+        <div class="stack">
+          <div class="head-line"><label class="label" for="maxWidth">글자 영역 너비</label><output class="val" id="maxWidthOut" for="maxWidth"></output></div>
+          <input type="range" id="maxWidth" min="30" max="100" step="1">
+          <p class="sub">영역을 넘으면 단어 단위로, 너무 긴 단어는 글자 단위로 줄을 바꿉니다. 가장자리에서는 4% 안쪽까지만 갑니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="t-preset">
+      <h2 class="section-title" id="t-preset">예시로 시작하기</h2>
+      <div class="group">
+        <div class="stack">
+          <div class="chips" id="presetChips"></div>
+          <p class="sub">글자와 배치만 바뀌고 사진은 그대로 둡니다. 내 템플릿에는 저장되지 않습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="t-tpl">
+      <h2 class="section-title" id="t-tpl">내 템플릿</h2>
+      <div class="group">
+        <div id="tplMsg" class="msg" role="status" hidden></div>
+        <div class="stack">
+          <label class="label" for="tplName">이름</label>
+          <input type="text" id="tplName" autocomplete="off" placeholder="예: 월요일 보안 수칙">
+          <div class="btns">
+            <button type="button" id="tplCreate">새 템플릿으로 저장</button>
+            <button type="button" id="tplUpdate" disabled>덮어쓰기</button>
+            <button type="button" id="tplDeselect" class="link" hidden>선택 해제</button>
+          </div>
+          <p class="sub">비율, 글자, 글꼴, 크기, 색, 효과, 정렬, 위치, 배경색을 저장합니다. 사진은 저장하지 않습니다.</p>
+        </div>
+        <ul class="tlist" id="tplList"></ul>
+      </div>
+      <p class="note" id="tplCount"></p>
+    </section>
+
+    <section aria-labelledby="t-json">
+      <h2 class="section-title" id="t-json">템플릿 옮기기</h2>
+      <div class="group">
+        <div id="jsonMsg" class="msg" role="status" hidden></div>
+        <div class="stack">
+          <div class="btns">
+            <button type="button" id="exportBtn">JSON 내보내기</button>
+            <label class="filebtn"><input type="file" id="importInput" accept=".json,application/json"><span>JSON 가져오기</span></label>
+          </div>
+          <p class="sub">가져올 때는 파일 전체를 먼저 검사하고, 하나라도 틀리면 아무것도 바꾸지 않습니다. 같은 ID의 템플릿은 가져온 내용으로 바뀝니다.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <p>사진과 글자는 서버로 전송되지 않고 이 브라우저 안에서만 처리됩니다. 저장한 PNG는 새로 그려 만든 파일이라 원본 사진의 촬영 정보와 위치 정보가 들어가지 않습니다.</p>
+</footer>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- 상수 ---------- */
+  const RATIOS = {
+    '1:1':  { w: 1080, h: 1080, slug: '1x1' },
+    '4:5':  { w: 1080, h: 1350, slug: '4x5' },
+    '9:16': { w: 1080, h: 1920, slug: '9x16' },
+  };
+  const EMOJI = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"';
+  const SANS_FALLBACK = `Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans CJK KR", "Malgun Gothic", ${EMOJI}, sans-serif`;
+  const FONTS = {
+    'gothic-bold': { label: '고딕 굵게', family: '"Pretendard Variable"', weight: 700, fallback: SANS_FALLBACK },
+    'gothic':      { label: '고딕 보통', family: '"Pretendard Variable"', weight: 400, fallback: SANS_FALLBACK },
+    'myeongjo':    { label: '명조 굵게', family: '"Nanum Myeongjo"', weight: 800,
+                     fallback: `"Noto Serif CJK KR", AppleMyungjo, Batang, ${EMOJI}, serif` },
+  };
+  // 이전 버전 JSON·저장 데이터의 글꼴 이름을 새 이름으로 읽어 들임
+  const LEGACY_FONTS = { noto: 'gothic-bold', blackhan: 'gothic-bold' };
+  const ALIGNS = ['left', 'center', 'right'];
+  const EFFECTS = ['none', 'shadow', 'outline'];
+  const LIMITS = {
+    nameMax: 30, textMax: 500, draftTextMax: 5000, templatesMax: 50,
+    jsonBytes: 1_000_000, imageBytes: 20 * 1024 * 1024, imageSide: 12000, imagePixels: 60_000_000,
+    size: [16, 240], maxWidth: [30, 100],
+  };
+  const LINE_HEIGHT = 1.3;
+  const SAFE_MARGIN = 0.04;   // 카드 너비의 4%
+  const KEY_TEMPLATES = 't03-card-editor:templates:v1';
+  const KEY_DRAFT = 't03-card-editor:draft:v1';
+  const SETTING_KEYS = ['ratio', 'text', 'x', 'y', 'size', 'color', 'align', 'font', 'effect', 'bg', 'maxWidth'];
+  const DEFAULT_SETTINGS = {
+    ratio: '4:5', text: '사진 한 장,\n글자 한 줄', x: 50, y: 50, size: 96,
+    color: '#FFFFFF', align: 'center', font: 'gothic-bold', effect: 'shadow', bg: '#1D1D1F', maxWidth: 84,
+  };
+  const TEXT_COLORS = ['#FFFFFF', '#1D1D1F', '#FFD60A', '#FF453A', '#0A84FF', '#30D158'];
+  const BG_COLORS = ['#1D1D1F', '#F5F5F7', '#FFFFFF', '#0B2545', '#2C3E2D', '#8E1B1B'];
+  const PRESETS = [
+    { label: '보안 수칙', s: { ratio: '4:5', text: '출처 모를 링크,\n누르기 전에 한 번 더', x: 50, y: 78, size: 80, color: '#FFFFFF', align: 'center', font: 'gothic-bold', effect: 'shadow', bg: '#1D1D1F', maxWidth: 84 } },
+    { label: '오늘 배운 것', s: { ratio: '1:1', text: 'TCP 3-way handshake\nSYN → SYN-ACK → ACK', x: 50, y: 50, size: 64, color: '#1D1D1F', align: 'left', font: 'gothic-bold', effect: 'none', bg: '#F5F5F7', maxWidth: 84 } },
+    { label: '공지', s: { ratio: '4:5', text: '정기 모임 안내\n매주 목요일 저녁 7시', x: 50, y: 14, size: 76, color: '#FFFFFF', align: 'left', font: 'gothic-bold', effect: 'shadow', bg: '#0B2545', maxWidth: 84 } },
+    { label: '국방', s: { ratio: '9:16', text: '우리의 평범한 하루는\n누군가의 경계 위에 있습니다', x: 50, y: 50, size: 72, color: '#FFFFFF', align: 'center', font: 'myeongjo', effect: 'shadow', bg: '#2C3E2D', maxWidth: 86 } },
+    { label: '다짐', s: { ratio: '1:1', text: '어제보다 한 줄 더', x: 50, y: 50, size: 88, color: '#FFFFFF', align: 'center', font: 'myeongjo', effect: 'shadow', bg: '#1D1D1F', maxWidth: 84 } },
+  ];
+
+  /* ---------- 도우미 ---------- */
+  const $ = (s) => document.querySelector(s);
+  const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const textLen = (s) => Array.from(s).length;
+  const isHex = (v) => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
+  const isNum = (min, max) => (v) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
+  const shorten = (s, n) => (Array.from(s).length > n ? Array.from(s).slice(0, n).join('') + '…' : s);
+  const segmenter = (typeof Intl !== 'undefined' && 'Segmenter' in Intl) ? new Intl.Segmenter('ko', { granularity: 'grapheme' }) : null;
+  const graphemes = (s) => (segmenter ? Array.from(segmenter.segment(s), (x) => x.segment) : Array.from(s));
+  function newId() {
+    if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  }
+  function stamp() {
+    const d = new Date(); const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  }
+  function showMsg(el, text, kind) {
+    if (!text) { el.hidden = true; el.textContent = ''; return; }
+    el.className = 'msg ' + kind; el.textContent = text; el.hidden = false;
+  }
+  function saveBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  class Rejection extends Error {}
+
+  /* ---------- 검증 (템플릿·초안·JSON 공통) ---------- */
+  function validateSettings(obj, textMax) {
+    const errors = []; const out = {};
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { errors: ['객체 형식이 아닙니다.'], value: null };
+    const src = { ...obj };
+    if (typeof src.font === 'string' && hasOwn(LEGACY_FONTS, src.font)) src.font = LEGACY_FONTS[src.font];
+    if (!hasOwn(src, 'effect') && typeof src.outline === 'boolean') src.effect = src.outline ? 'outline' : 'none';
+    const field = (k, ok, rule, def) => {
+      if (!hasOwn(src, k)) {
+        if (def === undefined) errors.push(`'${k}' 항목이 없습니다.`); else out[k] = def;
+        return;
+      }
+      if (!ok(src[k])) errors.push(`'${k}' 값이 올바르지 않습니다 (${rule}).`); else out[k] = src[k];
+    };
+    field('ratio', (v) => typeof v === 'string' && hasOwn(RATIOS, v), '1:1, 4:5, 9:16 중 하나');
+    field('text', (v) => typeof v === 'string' && textLen(v) <= textMax, `${textMax}자 이하 문자열`);
+    field('x', isNum(0, 100), '0~100 숫자');
+    field('y', isNum(0, 100), '0~100 숫자');
+    field('size', isNum(...LIMITS.size), `${LIMITS.size[0]}~${LIMITS.size[1]} 숫자`);
+    field('color', isHex, '#RRGGBB 형식');
+    field('align', (v) => ALIGNS.includes(v), 'left, center, right 중 하나');
+    field('font', (v) => typeof v === 'string' && hasOwn(FONTS, v), Object.keys(FONTS).join(', ') + ' 중 하나');
+    field('effect', (v) => EFFECTS.includes(v), 'none, shadow, outline 중 하나', DEFAULT_SETTINGS.effect);
+    field('bg', isHex, '#RRGGBB 형식', DEFAULT_SETTINGS.bg);
+    field('maxWidth', isNum(...LIMITS.maxWidth), `${LIMITS.maxWidth[0]}~${LIMITS.maxWidth[1]} 숫자`, DEFAULT_SETTINGS.maxWidth);
+    if (out.color) out.color = out.color.toUpperCase();
+    if (out.bg) out.bg = out.bg.toUpperCase();
+    return { errors, value: errors.length ? null : out };
+  }
+  function validateTemplate(obj) {
+    const base = validateSettings(obj, LIMITS.textMax);
+    const errors = [...base.errors];
+    let name = null, id = null;
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      if (!hasOwn(obj, 'name')) errors.unshift("'name' 항목이 없습니다.");
+      else if (typeof obj.name !== 'string' || obj.name.trim() === '' || textLen(obj.name.trim()) > LIMITS.nameMax)
+        errors.unshift(`'name' 값이 올바르지 않습니다 (1~${LIMITS.nameMax}자 문자열).`);
+      else name = obj.name.trim();
+      if (hasOwn(obj, 'id')) {
+        if (typeof obj.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(obj.id)) id = obj.id;
+        else errors.push("'id' 값이 올바르지 않습니다 (영문·숫자·-·_ 64자 이하).");
+      }
+    }
+    if (errors.length) return { errors, value: null };
+    const updatedAt = typeof obj.updatedAt === 'string' ? obj.updatedAt.slice(0, 40) : new Date().toISOString();
+    return { errors: [], value: { id, name, ...base.value, updatedAt } };
+  }
+  const pickSettings = (o) => Object.fromEntries(SETTING_KEYS.map((k) => [k, o[k]]));
+
+  /* ---------- 저장소 ---------- */
+  function readTemplates() {
+    let raw;
+    try { raw = localStorage.getItem(KEY_TEMPLATES); }
+    catch { return { list: [], error: '이 브라우저에서는 저장소를 쓸 수 없어 템플릿을 저장할 수 없습니다.' }; }
+    if (raw == null) return { list: [] };
+    let data;
+    try { data = JSON.parse(raw); }
+    catch {
+      try { localStorage.setItem(KEY_TEMPLATES + ':backup-' + stamp(), raw); } catch {}
+      return { list: [], error: '저장된 템플릿 데이터가 손상되어 읽지 못했습니다. 원본은 백업해 두었습니다.' };
+    }
+    const arr = data && Array.isArray(data.templates) ? data.templates : [];
+    const list = []; let skipped = 0; const seen = new Set();
+    for (const t of arr) {
+      const r = validateTemplate(t);
+      if (r.value && r.value.id && !seen.has(r.value.id)) { seen.add(r.value.id); list.push(r.value); } else skipped++;
+    }
+    return { list, skipped };
+  }
+  function writeTemplates(list) {
+    try { localStorage.setItem(KEY_TEMPLATES, JSON.stringify({ version: 1, templates: list })); }
+    catch (e) { throw new Rejection('브라우저 저장소에 쓰지 못했습니다 (' + (e && e.name || '오류') + ').'); }
+  }
+  let draftTimer = 0;
+  function saveDraftSoon() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => { try { localStorage.setItem(KEY_DRAFT, JSON.stringify(settings)); } catch {} }, 300);
+  }
+  function readDraft() {
+    try {
+      const raw = localStorage.getItem(KEY_DRAFT); if (!raw) return null;
+      return validateSettings(JSON.parse(raw), LIMITS.draftTextMax).value;
+    } catch { return null; }
+  }
+
+  /* ---------- 상태 ---------- */
+  let settings = { ...DEFAULT_SETTINGS };
+  let image = null;          // { bitmap, name, w, h, kind }
+  let activeId = null;
+
+  /* ---------- 그리기 ---------- */
+  const canvas = $('#card');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const fontString = (s) => { const f = FONTS[s.font]; return `${f.weight} ${s.size}px ${f.family}, ${f.fallback}`; };
+
+  function wrapLines(text, maxW) {
+    const fits = (t) => ctx.measureText(t).width <= maxW;
+    const lines = [];
+    for (const para of text.replace(/\r\n?/g, '\n').split('\n')) {
+      if (para === '') { lines.push(''); continue; }
+      let line = '';
+      for (const tok of para.match(/\s+|\S+/g)) {
+        if (/^\s+$/.test(tok)) {
+          if (line === '') { if (fits(tok)) line = tok; }
+          else if (fits(line + tok)) line += tok;
+          else { lines.push(line.trimEnd()); line = ''; }
+          continue;
+        }
+        if (fits(line + tok)) { line += tok; continue; }
+        if (line.trim() !== '' && fits(tok)) { lines.push(line.trimEnd()); line = tok; continue; }
+        for (const g of graphemes(tok)) {
+          if (line.trim() !== '' && !fits(line + g)) { lines.push(line.trimEnd()); line = g; }
+          else line += g;
+        }
+      }
+      lines.push(line.trimEnd());
+    }
+    return lines;
+  }
+
+  /* 색 대비 (WCAG 상대 휘도 기준) */
+  const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  function hexLum(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  }
+  const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  // 글자 아래 실제로 깔린 픽셀(배경색·사진)의 평균 휘도
+  function sampleLum(x, y, w, h) {
+    const x0 = Math.max(0, Math.floor(x)), y0 = Math.max(0, Math.floor(y));
+    const x1 = Math.min(canvas.width, Math.ceil(x + w)), y1 = Math.min(canvas.height, Math.ceil(y + h));
+    if (x1 <= x0 || y1 <= y0) return hexLum(settings.bg);
+    const d = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+    const step = 4 * Math.max(1, Math.floor(Math.sqrt(((x1 - x0) * (y1 - y0)) / 4000)));
+    let sum = 0, n = 0;
+    for (let i = 0; i < d.length; i += step) { sum += 0.2126 * lin(d[i]) + 0.7152 * lin(d[i + 1]) + 0.0722 * lin(d[i + 2]); n++; }
+    return n ? sum / n : hexLum(settings.bg);
+  }
+  // 효과 색 고르기
+  // 1) 관례 순서대로 시도: 그림자는 어두운색 먼저, 테두리는 글자와 반대 밝기 먼저
+  // 2) 배경 위에서 보이고(대비 1.8 이상) 글자와도 구분되면(1.6 이상) 그 색을 씀
+  // 3) 둘 다 안 되면 아래 대체 규칙의 회색을 씀
+  const grayLum = (g) => lin(g);
+  function effectGray(effect, textLum, bgLum) {
+    const order = effect === 'shadow' ? [0, 255] : (textLum > 0.18 ? [0, 255] : [255, 0]);
+    for (const g of order) {
+      const L = grayLum(g);
+      if (contrast(L, bgLum) >= 1.8 && contrast(L, textLum) >= 1.6) return g;
+    }
+    // 대체 규칙: 그림자는 배경 위에서 보이는 것을 우선(어두운 배경에선 은은한 번짐),
+    //            테두리는 글자·배경 양쪽과 고르게 구분되는 회색
+    let best = 128, bestScore = -1;
+    for (let g = 0; g <= 255; g += 5) {
+      const L = grayLum(g);
+      const score = effect === 'shadow'
+        ? (contrast(L, textLum) >= 1.3 ? contrast(L, bgLum) : -1)
+        : Math.min(contrast(L, textLum), contrast(L, bgLum));
+      if (score > bestScore) { bestScore = score; best = g; }
+    }
+    return best;
+  }
+
+  let lastLayout = null;
+  function render() {
+    const s = settings; const R = RATIOS[s.ratio]; const W = R.w, H = R.h;
+    if (canvas.width !== W) canvas.width = W;
+    if (canvas.height !== H) canvas.height = H;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = s.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    if (image) {
+      const sc = Math.max(W / image.w, H / image.h);
+      const dw = image.w * sc, dh = image.h * sc;
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(image.bitmap, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    }
+
+    ctx.save();
+    ctx.font = fontString(s);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = s.align;
+
+    // 효과가 글자 밖으로 번지는 만큼을 안전 여백에 더해, 가장자리에서 잘리지 않게 함
+    const strokeW = Math.max(2, s.size * 0.14);
+    const blur = s.size * 0.18, offY = s.size * 0.03;
+    const spill = s.effect === 'outline' ? strokeW / 2 : s.effect === 'shadow' ? blur + offY : 0;
+    const margin = Math.max(Math.round(W * SAFE_MARGIN), Math.ceil(spill) + 4);
+    const boxW = Math.min(W * s.maxWidth / 100, W - margin * 2);
+    const boxLeft = Math.min(Math.max(W * s.x / 100 - boxW / 2, margin), W - margin - boxW);
+    const lines = s.text === '' ? [] : wrapLines(s.text, boxW);
+    const lh = s.size * LINE_HEIGHT;
+    const blockH = lines.length * lh;
+    const usableH = H - margin * 2;
+    const top = blockH <= usableH ? Math.min(Math.max(H * s.y / 100 - blockH / 2, margin), H - margin - blockH) : margin;
+    const ax = s.align === 'left' ? boxLeft : s.align === 'right' ? boxLeft + boxW : boxLeft + boxW / 2;
+
+    let effectInfo = '';
+    if (s.effect !== 'none' && lines.length) {
+      const bgLum = sampleLum(boxLeft - spill, top - spill, boxW + spill * 2, blockH + spill * 2);
+      const g = effectGray(s.effect, hexLum(s.color), bgLum);
+      if (s.effect === 'outline') {
+        ctx.lineJoin = 'round'; ctx.miterLimit = 2; ctx.lineWidth = strokeW;
+        ctx.strokeStyle = `rgba(${g},${g},${g},0.9)`;
+      } else {
+        ctx.shadowColor = `rgba(${g},${g},${g},0.7)`;
+        ctx.shadowBlur = blur; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = offY;
+      }
+      effectInfo = g;
+    }
+    ctx.fillStyle = s.color;
+    let widest = 0;
+    lines.forEach((ln, i) => {
+      const yy = top + lh * (i + 0.5);
+      widest = Math.max(widest, ctx.measureText(ln).width);
+      if (s.effect === 'outline') ctx.strokeText(ln, ax, yy);
+      ctx.fillText(ln, ax, yy);
+    });
+    ctx.restore();
+
+    lastLayout = { W, H, lines: lines.length, overflowY: blockH > usableH, overflowX: widest > boxW + 0.5, effectGray: effectInfo };
+    updateReadout();
+    requestFonts();
+  }
+  let rafId = 0;
+  function scheduleRender() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => { rafId = 0; render(); });
+  }
+
+  /* 한글 웹폰트는 글자 범위별로 나눠 받기 때문에, 지금 문구에 필요한 조각을 요청하고 도착하면 다시 그림 */
+  let lastFontKey = '';
+  function requestFonts() {
+    if (!document.fonts || !document.fonts.load) return;
+    const f = FONTS[settings.font];
+    const key = settings.font + '|' + settings.text;
+    if (key === lastFontKey) return;
+    lastFontKey = key;
+    document.fonts.load(`${f.weight} 40px ${f.family}`, settings.text || '가').then(() => scheduleRender()).catch(() => {});
+  }
+  async function fontsReady() {
+    if (!document.fonts) return;
+    const f = FONTS[settings.font];
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    try {
+      await Promise.race([
+        Promise.all([document.fonts.load(`${f.weight} 40px ${f.family}`, settings.text || '가'), document.fonts.ready]),
+        wait(5000),
+      ]);
+    } catch {}
+  }
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', scheduleRender);
+
+  function updateReadout() {
+    const L = lastLayout;
+    $('#readout').textContent = `${L.W} × ${L.H}px  ·  ${settings.ratio}  ·  ${L.lines}줄`;
+    const warn = [];
+    if (L.overflowY) warn.push('글자가 카드 높이보다 길어 아래쪽이 잘립니다. 크기나 글자 수를 줄이세요. 저장 파일도 똑같이 잘립니다.');
+    if (L.overflowX) warn.push('글자 하나가 영역보다 넓습니다. 크기를 줄이거나 영역 너비를 넓히세요.');
+    showMsg($('#layoutWarn'), warn.join('\n'), 'notice');
+  }
+
+  /* ---------- 컨트롤 ---------- */
+  const fontSel = $('#font');
+  for (const [k, f] of Object.entries(FONTS)) {
+    const o = document.createElement('option'); o.value = k; o.textContent = f.label; fontSel.appendChild(o);
+  }
+  function buildSwatches(box, colors, key, label, inputId) {
+    for (const c of colors) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'sw'; b.style.background = c; b.dataset.color = c;
+      b.setAttribute('aria-label', `${label} ${c}`);
+      b.addEventListener('click', () => setSetting(key, c));
+      box.appendChild(b);
+    }
+    const custom = document.createElement('label');
+    custom.className = 'sw custom'; custom.title = '직접 고르기';
+    const inp = document.createElement('input'); inp.type = 'color'; inp.id = inputId; inp.setAttribute('aria-label', `${label} 직접 고르기`);
+    inp.addEventListener('input', () => setSetting(key, inp.value.toUpperCase()));
+    custom.appendChild(inp); box.appendChild(custom);
+  }
+  buildSwatches($('#colorSwatches'), TEXT_COLORS, 'color', '글자 색', 'colorCustom');
+  buildSwatches($('#bgSwatches'), BG_COLORS, 'bg', '배경색', 'bgCustom');
+  function syncSwatches(box, value) {
+    let matched = false;
+    box.querySelectorAll('button.sw').forEach((b) => { const on = b.dataset.color === value; b.setAttribute('aria-pressed', String(on)); matched ||= on; });
+    const custom = box.querySelector('.sw.custom');
+    custom.querySelector('input').value = value.toLowerCase();
+    custom.toggleAttribute('data-on', !matched);
+    custom.style.boxShadow = matched ? '' : `0 0 0 3px var(--surface), 0 0 0 5px var(--accent)`;
+  }
+  function setRangeFill(el) {
+    const p = (Number(el.value) - Number(el.min)) / (Number(el.max) - Number(el.min)) * 100;
+    el.style.setProperty('--p', p + '%');
+  }
+
+  function syncControls() {
+    const s = settings;
+    for (const name of ['ratio', 'align', 'effect']) document.querySelectorAll(`input[name=${name}]`).forEach((r) => { r.checked = r.value === s[name]; });
+    $('#text').value = s.text;
+    fontSel.value = s.font;
+    $('#size').value = s.size; $('#x').value = s.x; $('#y').value = s.y; $('#maxWidth').value = s.maxWidth;
+    syncOutputs();
+  }
+  function syncOutputs() {
+    const s = settings;
+    $('#sizeOut').value = s.size + 'px';
+    $('#xOut').value = s.x; $('#yOut').value = s.y; $('#maxWidthOut').value = s.maxWidth + '%';
+    for (const id of ['size', 'x', 'y', 'maxWidth']) setRangeFill($('#' + id));
+    syncSwatches($('#colorSwatches'), s.color);
+    syncSwatches($('#bgSwatches'), s.bg);
+    const n = textLen(s.text); const c = $('#textCounter');
+    c.textContent = n > LIMITS.textMax ? `${n} / ${LIMITS.textMax}자 · 템플릿으로 저장하려면 ${n - LIMITS.textMax}자를 줄이세요` : `${n} / ${LIMITS.textMax}자`;
+    c.classList.toggle('over', n > LIMITS.textMax);
+  }
+  function setSetting(k, v) {
+    settings = { ...settings, [k]: v };
+    syncOutputs(); scheduleRender(); saveDraftSoon();
+  }
+  for (const name of ['ratio', 'align', 'effect']) {
+    document.querySelectorAll(`input[name=${name}]`).forEach((r) => r.addEventListener('change', () => setSetting(name, r.value)));
+  }
+  $('#text').addEventListener('input', (e) => setSetting('text', e.target.value));
+  fontSel.addEventListener('change', (e) => setSetting('font', e.target.value));
+  for (const id of ['size', 'x', 'y', 'maxWidth']) $('#' + id).addEventListener('input', (e) => setSetting(id, Number(e.target.value)));
+
+  /* ---------- 예시 ---------- */
+  const presetBox = $('#presetChips');
+  PRESETS.forEach((p) => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = p.label;
+    b.addEventListener('click', () => {
+      const known = [DEFAULT_SETTINGS.text, ...PRESETS.map((x) => x.s.text)];
+      if (settings.text.trim() !== '' && !known.includes(settings.text)
+          && !confirm('지금 쓰던 글자와 배치가 예시로 바뀝니다. 계속할까요?')) return;
+      settings = { ...p.s }; activeId = null; $('#tplName').value = '';
+      syncControls(); scheduleRender(); saveDraftSoon(); refreshTemplates();
+    });
+    presetBox.appendChild(b);
+  });
+
+  /* ---------- 사진 불러오기 ---------- */
+  async function sniff(file) {
+    const b = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    const at = (arr, off = 0) => arr.every((v, i) => b[off + i] === v);
+    const ascii = (off, str) => Array.from(str).every((ch, i) => b[off + i] === ch.charCodeAt(0));
+    if (at([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])) return 'png';
+    if (at([0xFF, 0xD8, 0xFF])) return 'jpeg';
+    if (ascii(0, 'GIF8')) return 'gif';
+    if (ascii(0, 'RIFF') && ascii(8, 'WEBP')) return 'webp';
+    if (ascii(0, 'BM')) return 'bmp';
+    if (ascii(0, '%PDF')) return 'pdf';
+    if (ascii(4, 'ftyp')) return 'heic/mp4';
+    const head = new TextDecoder().decode(b).trimStart().toLowerCase();
+    if (head.startsWith('<svg') || head.startsWith('<?xml')) return 'svg/xml';
+    return null;
+  }
+  async function decodeImage(file) {
+    if ('createImageBitmap' in window) return await createImageBitmap(file);
+    const url = URL.createObjectURL(file);
+    try { const img = new Image(); img.src = url; await img.decode(); return img; }
+    finally { URL.revokeObjectURL(url); }
+  }
+  async function inspectMeta(file, kind) {
+    const res = { exif: false, gps: false };
+    try {
+      const v = new DataView(await file.slice(0, Math.min(file.size, 1024 * 1024)).arrayBuffer());
+      const n = v.byteLength;
+      const tiff = (start) => {
+        res.exif = true;
+        const bo = v.getUint16(start); const le = bo === 0x4949;
+        if (!le && bo !== 0x4D4D) return;
+        const p = start + v.getUint32(start + 4, le);
+        if (p + 2 > n) return;
+        const count = v.getUint16(p, le);
+        for (let i = 0; i < count && p + 2 + i * 12 + 2 <= n; i++) if (v.getUint16(p + 2 + i * 12, le) === 0x8825) res.gps = true;
+      };
+      if (kind === 'jpeg') {
+        let o = 2;
+        while (o + 4 <= n && v.getUint8(o) === 0xFF) {
+          const m = v.getUint8(o + 1); if (m === 0xDA || m === 0xD9) break;
+          const len = v.getUint16(o + 2);
+          if (m === 0xE1 && o + 10 <= n && v.getUint32(o + 4) === 0x45786966 && v.getUint16(o + 8) === 0) tiff(o + 10);
+          o += 2 + len;
+        }
+      } else {
+        let o = 8;
+        while (o + 8 <= n) {
+          const len = v.getUint32(o); const type = String.fromCharCode(v.getUint8(o + 4), v.getUint8(o + 5), v.getUint8(o + 6), v.getUint8(o + 7));
+          if (type === 'eXIf') tiff(o + 8);
+          if (type === 'IEND') break;
+          o += 12 + len;
+        }
+      }
+    } catch {}
+    return res;
+  }
+  const KIND_LABEL = { gif: 'GIF', webp: 'WebP', bmp: 'BMP', pdf: 'PDF', 'heic/mp4': 'HEIC 또는 동영상', 'svg/xml': 'SVG/XML' };
+
+  async function loadImageFile(file, extraNote) {
+    const imgErr = $('#imageError');
+    if (!file) return;
+    const label = `"${shorten(file.name, 50)}"`;
+    try {
+      if (file.size === 0) throw new Rejection(`${label}은(는) 빈 파일(0바이트)입니다.`);
+      if (file.size > LIMITS.imageBytes) throw new Rejection(`${label}은(는) ${(file.size / 1048576).toFixed(1)}MB입니다. 20MB 이하만 열 수 있습니다.`);
+      const kind = await sniff(file);
+      if (kind !== 'png' && kind !== 'jpeg') {
+        const ext = (file.name.match(/\.([^.]+)$/) || [, '없음'])[1];
+        throw new Rejection(kind
+          ? `${label}은(는) ${KIND_LABEL[kind]} 파일입니다. PNG와 JPEG만 열 수 있습니다.`
+          : `${label}은(는) PNG나 JPEG 사진이 아닙니다. 확장자(.${shorten(ext, 10)})가 아니라 파일 내용으로 확인했습니다.`);
+      }
+      let bmp;
+      try { bmp = await decodeImage(file); }
+      catch { throw new Rejection(`${label}은(는) ${kind === 'png' ? 'PNG' : 'JPEG'} 형식으로 시작하지만 내용이 손상되어 열 수 없습니다.`); }
+      const w = bmp.width, h = bmp.height;
+      if (!w || !h || w > LIMITS.imageSide || h > LIMITS.imageSide || w * h > LIMITS.imagePixels) {
+        if (bmp.close) bmp.close();
+        throw new Rejection(`${label}의 크기(${w}×${h}px)가 너무 큽니다. 가로·세로 12,000px, 전체 6천만 화소 이하만 열 수 있습니다.`);
+      }
+      const meta = await inspectMeta(file, kind);
+      if (image && image.bitmap.close) image.bitmap.close();
+      image = { bitmap: bmp, name: file.name, w, h, kind };
+      showMsg(imgErr, '', '');
+      $('#imageInfo').textContent = `${shorten(file.name, 34)} · ${w}×${h}`;
+      $('#clearImageBtn').hidden = false;
+      const notes = [];
+      if (extraNote) notes.push(extraNote);
+      if (meta.gps) notes.push('이 원본 사진에는 위치 정보(GPS)가 들어 있습니다. 저장하는 카드에는 포함되지 않지만, 원본 파일을 공개된 곳에 올리지 마세요.');
+      else if (meta.exif) notes.push('이 원본 사진에는 촬영 정보(EXIF)가 있습니다. 저장하는 카드에는 포함되지 않습니다.');
+      showMsg($('#imageNotice'), notes.join('\n'), 'notice');
+      scheduleRender();
+    } catch (e) {
+      const reason = e instanceof Rejection ? e.message : '사진을 여는 중 예상하지 못한 오류가 났습니다: ' + (e && e.message);
+      const keep = image ? `지금 쓰던 사진(${shorten(image.name, 30)})과 글자는 그대로입니다.` : '지금 쓰던 글자와 설정은 그대로입니다.';
+      showMsg(imgErr, `열지 않음: ${reason}\n${keep}`, 'error');
+    }
+  }
+  $('#imageInput').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ''; loadImageFile(f); });
+  const dz = $('#dropZone');
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault(); dz.classList.remove('over');
+    const files = e.dataTransfer.files;
+    if (files.length) loadImageFile(files[0], files.length > 1 ? `파일 ${files.length}개 중 첫 번째만 열었습니다.` : '');
+  });
+  // 편집기 밖에 파일을 떨어뜨려도 브라우저가 파일을 열며 작업이 사라지지 않게 막음
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => { if (!dz.contains(e.target)) e.preventDefault(); });
+  $('#clearImageBtn').addEventListener('click', () => {
+    if (!image) return;
+    if (image.bitmap.close) image.bitmap.close();
+    image = null;
+    $('#imageInfo').textContent = '사진이 없으면 배경색으로 채웁니다.';
+    $('#clearImageBtn').hidden = true;
+    showMsg($('#imageNotice'), '', ''); showMsg($('#imageError'), '', '');
+    scheduleRender();
+  });
+
+  /* ---------- 저장 ---------- */
+  async function inspectPng(blob) {
+    const v = new DataView(await blob.arrayBuffer());
+    const out = { w: v.getUint32(16), h: v.getUint32(20), meta: [] };
+    let o = 8;
+    while (o + 8 <= v.byteLength) {
+      const len = v.getUint32(o);
+      const t = String.fromCharCode(v.getUint8(o + 4), v.getUint8(o + 5), v.getUint8(o + 6), v.getUint8(o + 7));
+      if (['eXIf', 'tEXt', 'iTXt', 'zTXt', 'tIME'].includes(t)) out.meta.push(t);
+      if (t === 'IEND') break;
+      o += 12 + len;
+    }
+    return out;
+  }
+  $('#downloadBtn').addEventListener('click', async () => {
+    const btn = $('#downloadBtn'); btn.disabled = true; btn.textContent = '글꼴 준비 중…';
+    try {
+      await fontsReady();
+      render();
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+      if (!blob) throw new Error('이미지를 만들지 못했습니다.');
+      const chk = await inspectPng(blob);
+      const name = `one-line-card_${RATIOS[settings.ratio].slug}_${stamp()}.png`;
+      saveBlob(blob, name);
+      showMsg($('#fileCheck'), `저장했습니다: ${name}\n${chk.w} × ${chk.h}px · 위치·메타데이터 청크 ${chk.meta.length}개`, 'ok');
+    } catch (e) {
+      showMsg($('#fileCheck'), '저장하지 못했습니다: ' + (e && e.message), 'error');
+    } finally { btn.disabled = false; btn.textContent = 'PNG로 저장'; }
+  });
+
+  /* ---------- 템플릿 ---------- */
+  const tplMsg = $('#tplMsg');
+  const FONT_SHORT = (k) => (FONTS[k] ? FONTS[k].label : k);
+  function refreshTemplates() {
+    const { list, error, skipped } = readTemplates();
+    if (activeId && !list.some((t) => t.id === activeId)) activeId = null;
+    const ul = $('#tplList'); ul.replaceChildren();
+    for (const t of list) {
+      const li = document.createElement('li');
+      const chk = document.createElement('span'); chk.className = 'tcheck'; chk.textContent = t.id === activeId ? '✓' : '';
+      chk.setAttribute('aria-label', t.id === activeId ? '편집 중' : '');
+      const body = document.createElement('div'); body.className = 'tbody';
+      const nm = document.createElement('div'); nm.className = 'tname'; nm.textContent = t.name;
+      const meta = document.createElement('div'); meta.className = 'tmeta';
+      const first = t.text === '' ? '(빈 글자)' : shorten(t.text.replace(/\s*\n\s*/g, ' / '), 40);
+      meta.textContent = `${t.ratio} · ${FONT_SHORT(t.font)} · ${first}`;
+      body.append(nm, meta);
+      const btns = document.createElement('div'); btns.className = 'tbtns';
+      const mk = (label, act, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'link ' + (cls || ''); b.textContent = label; b.dataset.act = act; b.dataset.id = t.id; return b; };
+      btns.append(mk('불러오기', 'load'), mk('삭제', 'delete', 'danger'));
+      li.append(chk, body, btns); ul.appendChild(li);
+    }
+    $('#tplCount').textContent = list.length ? `템플릿 ${list.length}개 · 최대 ${LIMITS.templatesMax}개` : '';
+    if (!list.length) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = '아직 템플릿이 없습니다. 지금 설정에 이름을 붙여 저장해 보세요.'; ul.appendChild(p); }
+    const active = list.find((t) => t.id === activeId);
+    $('#tplUpdate').disabled = !active;
+    $('#tplUpdate').textContent = active ? `"${shorten(active.name, 12)}" 덮어쓰기` : '덮어쓰기';
+    $('#tplDeselect').hidden = !active;
+    if (error) showMsg(tplMsg, error, 'error');
+    else if (skipped) showMsg(tplMsg, `형식이 맞지 않는 템플릿 ${skipped}개는 목록에서 뺐습니다.`, 'notice');
+    return list;
+  }
+  function currentTemplate(name, id) {
+    const r = validateTemplate({ ...settings, name, id });
+    if (r.errors.length) throw new Rejection(r.errors.join('\n'));
+    return { ...r.value, id, updatedAt: new Date().toISOString() };
+  }
+  $('#tplCreate').addEventListener('click', () => {
+    try {
+      const list = readTemplates().list;
+      if (list.length >= LIMITS.templatesMax) throw new Rejection(`템플릿은 최대 ${LIMITS.templatesMax}개까지 저장됩니다. 하나를 지운 뒤 다시 저장하세요.`);
+      const t = currentTemplate($('#tplName').value, newId());
+      writeTemplates([...list, t]);
+      activeId = t.id;
+      refreshTemplates();
+      showMsg(tplMsg, `"${t.name}" 템플릿을 만들었습니다.`, 'ok');
+    } catch (e) { refreshTemplates(); showMsg(tplMsg, '저장하지 않음: ' + e.message, 'error'); }
+  });
+  $('#tplUpdate').addEventListener('click', () => {
+    try {
+      const list = readTemplates().list;
+      const old = list.find((t) => t.id === activeId);
+      if (!old) throw new Rejection('선택한 템플릿을 찾을 수 없습니다. 목록을 새로 읽었습니다.');
+      const t = currentTemplate($('#tplName').value, old.id);
+      if (!confirm(`"${old.name}" 템플릿을 지금 설정으로 덮어쓸까요?`)) return;
+      writeTemplates(list.map((x) => (x.id === old.id ? t : x)));
+      refreshTemplates();
+      showMsg(tplMsg, `"${t.name}" 템플릿을 수정했습니다.`, 'ok');
+    } catch (e) { refreshTemplates(); showMsg(tplMsg, '수정하지 않음: ' + e.message, 'error'); }
+  });
+  $('#tplDeselect').addEventListener('click', () => { activeId = null; $('#tplName').value = ''; refreshTemplates(); showMsg(tplMsg, '', ''); });
+  $('#tplList').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-act]'); if (!b) return;
+    const list = readTemplates().list;
+    const t = list.find((x) => x.id === b.dataset.id);
+    if (!t) { refreshTemplates(); showMsg(tplMsg, '그 템플릿은 이미 없습니다. 목록을 새로 읽었습니다.', 'notice'); return; }
+    if (b.dataset.act === 'load') {
+      settings = pickSettings(t); activeId = t.id; $('#tplName').value = t.name;
+      syncControls(); scheduleRender(); saveDraftSoon(); refreshTemplates();
+      showMsg(tplMsg, `"${t.name}" 템플릿을 불러왔습니다. 고친 뒤 덮어쓰기를 누르면 수정됩니다.`, 'ok');
+    } else if (b.dataset.act === 'delete') {
+      if (!confirm(`"${t.name}" 템플릿을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+      try {
+        writeTemplates(list.filter((x) => x.id !== t.id));
+        if (activeId === t.id) { activeId = null; $('#tplName').value = ''; }
+        refreshTemplates();
+        showMsg(tplMsg, `"${t.name}" 템플릿을 삭제했습니다.`, 'ok');
+      } catch (err) { refreshTemplates(); showMsg(tplMsg, '삭제하지 않음: ' + err.message, 'error'); }
+    }
+  });
+
+  /* ---------- JSON 내보내기·가져오기 ---------- */
+  const jsonMsg = $('#jsonMsg');
+  $('#exportBtn').addEventListener('click', () => {
+    const list = readTemplates().list;
+    if (!list.length) { showMsg(jsonMsg, '내보낼 템플릿이 없습니다. 먼저 템플릿을 저장하세요.', 'notice'); return; }
+    const data = { app: 't03-card-editor', version: 1, exportedAt: new Date().toISOString(), templates: list };
+    saveBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), `one-line-card-templates_${stamp()}.json`);
+    showMsg(jsonMsg, `템플릿 ${list.length}개를 JSON으로 내보냈습니다.`, 'ok');
+  });
+  async function importJson(file) {
+    if (!file) return;
+    const before = readTemplates().list;
+    try {
+      if (file.size > LIMITS.jsonBytes) throw new Rejection('파일이 1MB를 넘습니다.');
+      let data;
+      try { data = JSON.parse((await file.text()).replace(/^\uFEFF/, '')); }
+      catch (e) { throw new Rejection('JSON 문법 오류입니다. ' + (e && e.message ? e.message : '')); }
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Rejection('최상위가 { "templates": [...] } 형태의 객체여야 합니다.');
+      if (hasOwn(data, 'version') && data.version !== 1) throw new Rejection(`지원하지 않는 version(${String(data.version).slice(0, 10)})입니다. 1만 지원합니다.`);
+      if (!hasOwn(data, 'templates')) throw new Rejection("'templates' 항목이 없습니다.");
+      if (!Array.isArray(data.templates)) throw new Rejection("'templates'는 배열이어야 합니다.");
+      if (!data.templates.length) throw new Rejection('가져올 템플릿이 0개입니다.');
+      const errs = []; const valid = []; const ids = new Set();
+      data.templates.forEach((t, i) => {
+        const r = validateTemplate(t);
+        const nm = t && typeof t.name === 'string' ? ` "${shorten(t.name, 20)}"` : '';
+        if (r.errors.length) { errs.push(`${i + 1}번째 템플릿${nm}: ${r.errors.join(' ')}`); return; }
+        if (r.value.id) { if (ids.has(r.value.id)) { errs.push(`${i + 1}번째 템플릿${nm}: 같은 파일 안에 id가 중복됩니다.`); return; } ids.add(r.value.id); }
+        valid.push(r.value);
+      });
+      if (errs.length) throw new Rejection(errs.slice(0, 5).join('\n') + (errs.length > 5 ? `\n외 ${errs.length - 5}건` : ''));
+      const merged = [...before]; let added = 0, replaced = 0;
+      for (const v of valid) {
+        const idx = v.id ? merged.findIndex((x) => x.id === v.id) : -1;
+        if (idx >= 0) { merged[idx] = v; replaced++; } else { merged.push({ ...v, id: v.id || newId() }); added++; }
+      }
+      if (merged.length > LIMITS.templatesMax) throw new Rejection(`합치면 ${merged.length}개가 되어 최대 ${LIMITS.templatesMax}개를 넘습니다.`);
+      writeTemplates(merged);
+      refreshTemplates();
+      showMsg(jsonMsg, `가져왔습니다: 템플릿 ${before.length}개 → ${merged.length}개 (새로 추가 ${added}, 같은 ID 덮어씀 ${replaced})`, 'ok');
+    } catch (e) {
+      const reason = e instanceof Rejection ? e.message : '예상하지 못한 오류: ' + (e && e.message);
+      const now = refreshTemplates().length;
+      showMsg(jsonMsg, `가져오지 않음: ${reason}\n기존 템플릿 ${now}개는 그대로입니다.`, 'error');
+    }
+  }
+  $('#importInput').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ''; importJson(f); });
+
+  /* ---------- 시작 ---------- */
+  const draft = readDraft();
+  if (draft) settings = draft;
+  syncControls();
+  refreshTemplates();
+  render();
+  if (draft) showMsg($('#imageNotice'), '지난번 글자와 설정을 이어서 불러왔습니다. 사진은 다시 골라야 합니다.', 'notice');
+})();
+</script>
+</body>
+</html>
