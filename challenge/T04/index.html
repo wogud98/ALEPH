@@ -104,6 +104,13 @@
   .check td { padding: 4px 18px 4px 0; font-family: var(--print); }
   .verdict { margin: 10px 0 0; font-weight: 600; }
 
+  .replay { margin-top: 56px; padding-top: 28px; border-top: 2px dashed var(--rule); }
+  .replay > h2 { font-size: 1.3rem; margin: 0 0 6px; }
+  .replay > p { margin: 0 0 8px; color: var(--muted); font-size: 0.92rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+  button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--rule); }
+  code { font-family: var(--print); }
+
   footer { margin-top: 40px; color: var(--muted); font-size: 0.88rem; }
   footer p { margin: 0 0 4px; }
 
@@ -128,22 +135,33 @@
     <div class="sheet"><p>기록을 불러오는 중이에요.</p></div>
   </main>
 
+  <section class="replay" aria-labelledby="replay-h">
+    <h2 id="replay-h">합성 재생: 값이 안 올 때 이 장부는 어떻게 보이나요</h2>
+    <p>여기 값(100·105·120 pt, 2026-08-24·25)은 ALEPH 공개 fixture의 <strong>합성 시험값</strong>이에요. 실제 환율 기록과 섞이지 않고 이 페이지 메모리에서만 재생돼요. 위 실제 장부와 같은 저장 함수(collector/lib.js)와 같은 그리기 함수를 써요.</p>
+    <p id="replay-hash" class="hash">fixture를 불러오는 중이에요.</p>
+    <div id="replay-controls" class="controls"></div>
+    <div id="replay-board"></div>
+    <div id="replay-log"></div>
+  </section>
+
   <footer>
     <p>환율 출처: <a href="https://www.exchangerate-api.com">Rates By Exchange Rate API</a> (키 없이 쓰는 공개 엔드포인트, 하루 1회 갱신)</p>
     <p>수집은 GitHub Actions가 매일 10:17, 22:17(KST)에 실행하고, 같은 날 다시 성공하면 새 줄을 만들지 않고 그날 줄을 고쳐 써요.</p>
   </footer>
 </div>
 
+<script src="collector/lib.js"></script>
 <script>
 'use strict';
 
 const TZ = 'Asia/Seoul';
+const Lib = window.T04Lib;
 const ERRORS = {
-  timeout:      { short: '시간 초과', what: '원천이 10초 안에 응답하지 않았어요.', next: '원천이 잠시 느린 상태예요. 다음 자동 수집이나 수동 실행 때 다시 시도돼요.' },
-  auth:         { short: '접근 거절', what: '원천이 요청을 거절했어요 (HTTP 401/403).', next: '키 없이 쓰던 공개 엔드포인트의 이용 조건이 바뀌었는지 원천 문서를 확인해야 해요.' },
+  timeout:      { short: '시간 초과', what: '원천이 제한 시간 안에 응답하지 않았어요.', next: '원천이 잠시 느린 상태예요. 잠시 뒤 다시 시도하세요. 자동 수집도 다음 차례에 다시 시도해요.' },
+  auth:         { short: '접근 거절', what: '원천이 요청을 거절했어요 (HTTP 401/403).', next: '키 없이 쓰던 공개 엔드포인트의 이용 조건이 바뀌었는지 원천 문서를 확인한 뒤 다시 시도하세요.' },
   rate_limit:   { short: '호출 제한', what: '원천의 호출 한도를 넘었어요 (HTTP 429).', next: '차단은 보통 20분 뒤 풀려요. 그 뒤에 다시 시도하세요.' },
   offline:      { short: '연결 실패', what: '원천 서버에 연결하지 못했어요.', next: '네트워크나 원천 서버 상태를 확인한 뒤 다시 시도하세요.' },
-  schema_error: { short: '형식 변경', what: '응답이 예상한 형식과 달라 값을 읽지 못했어요.', next: '원천 응답 구조가 바뀌었는지 확인하고 수집 코드를 고쳐야 해요.' }
+  schema_error: { short: '형식 변경', what: '응답이 예상한 형식과 달라 값을 읽지 못했어요.', next: '원천 응답 구조가 바뀌었는지 확인하고 수집 코드를 고친 뒤 다시 시도하세요.' }
 };
 
 const numFmt = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 10 });
@@ -158,62 +176,36 @@ function fmtTime(iso, tz) {
   const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
-const kst = (iso) => `${fmtTime(iso, TZ)} KST`;
-const utc = (iso) => `${fmtTime(iso, 'UTC')} UTC`;
+const kst = (iso) => iso ? `${fmtTime(iso, TZ)} KST` : '원천이 시각을 주지 않았어요';
+const utc = (iso) => iso ? `${fmtTime(iso, 'UTC')} UTC` : '시각 없음';
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// 전날 대비 규칙(수집기 lib.js의 comparisonFor와 동일):
+// 전날 대비 규칙: 수집기와 같은 lib.js의 comparisonFor로 계산함.
 // 변화 = 이 기록의 저장값 − 바로 앞 기록일의 저장값. 표시는 소수 넷째 자리 반올림.
 function comparison(rows, current) {
-  const prev = rows
-    .filter((r) => r.signal_id === current.signal_id && r.record_date < current.record_date)
-    .sort((a, b) => b.record_date.localeCompare(a.record_date))[0];
-  if (!prev) return null;
-  if (prev.unit !== current.unit) return { prev, mismatch: true };
-  const signed = current.normalized_value - prev.normalized_value;
-  const rounded = Math.round(Math.abs(signed) * 1e4) / 1e4;
-  return { prev, signed, rounded, direction: rounded === 0 ? 'same' : signed > 0 ? 'up' : 'down' };
+  const c = Lib.comparisonFor(rows, current);
+  if (c.state === 'insufficient') return null;
+  if (c.state === 'unit_mismatch') return { prev: c.previous, mismatch: true };
+  const signed = current.normalized_value - c.previous.normalized_value;
+  const rounded = Math.round(c.magnitude * 1e4) / 1e4;
+  return { prev: c.previous, signed, rounded, direction: rounded === 0 ? 'same' : signed > 0 ? 'up' : 'down' };
 }
 
-async function getJson(url) {
-  const res = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
-  if (res.status === 404) return { missing: true };
-  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-  return { data: await res.json() };
-}
-
-function renderEmpty(msg) {
-  document.getElementById('app').innerHTML = `<div class="sheet"><p>${msg}</p></div>`;
-}
-
-async function load() {
-  let daily, status;
-  try {
-    [daily, status] = await Promise.all([getJson('data/daily.json'), getJson('data/status.json')]);
-  } catch (err) {
-    renderEmpty(`기록 파일을 불러오지 못했어요 (${esc(err.message)}). 잠시 뒤 새로고침하세요.`);
-    return;
-  }
-  const rows = daily.missing ? [] : daily.data;
-  const st = status.missing ? null : status.data;
-  if (rows.length === 0) {
-    renderEmpty('아직 저장된 기록이 없어요. 저장소의 Actions 탭에서 “T04 환율 수집”을 실행하면 첫 줄이 생겨요.');
-    return;
-  }
-
+// 실제 장부와 합성 재생이 함께 쓰는 그리기 함수. rows = daily.json 모양, st = status.json 모양.
+function boardHtml(rows, st, opts) {
   const latest = rows[rows.length - 1];
   const r = latest.reading;
-  const isStale = st && st.status.freshness === 'stale';
+  const isStale = !!st && st.status.freshness === 'stale';
   const err = isStale ? ERRORS[st.status.error_code] : null;
   const cmp = comparison(rows, latest);
 
   let deltaText = '앞선 기록일이 없어서 아직 비교할 수 없어요.';
-  if (cmp && cmp.mismatch) deltaText = `앞선 기록(${cmp.prev.record_date})과 단위가 달라 비교하지 않았어요.`;
+  if (cmp && cmp.mismatch) deltaText = `앞선 기록(${esc(cmp.prev.record_date)})과 단위가 달라 비교하지 않았어요.`;
   else if (cmp) {
     const word = cmp.direction === 'up' ? '올랐어요' : cmp.direction === 'down' ? '내렸어요' : '같아요';
     deltaText = cmp.direction === 'same'
-      ? `앞선 기록(${cmp.prev.record_date})과 같아요.`
-      : `앞선 기록(${cmp.prev.record_date})보다 <strong>${deltaFmt.format(cmp.rounded)}원</strong> ${word}.`;
+      ? `앞선 기록(${esc(cmp.prev.record_date)})과 같아요.`
+      : `앞선 기록(${esc(cmp.prev.record_date)})보다 <strong>${deltaFmt.format(cmp.rounded)}${esc(opts.unitWord)}</strong> ${word}.`;
   }
 
   let notice = '';
@@ -223,10 +215,10 @@ async function load() {
     if (st.status.error_code === 'rate_limit' && ra) next = `원천이 ${Math.ceil(ra / 60)}분 뒤 다시 시도하라고 알려 왔어요.`;
     notice = `
       <div class="notice" role="status">
-        <h2>지금 보이는 값은 ${esc(latest.record_date)} 기록이에요 (${esc(err.short)})</h2>
+        <h2>지금 보이는 값은 ${esc(latest.record_date)} 기록의 오래된 값이에요 (${esc(err.short)})</h2>
         <p>${esc(kst(st.last_run.at))} 수집 시도에서 ${esc(err.what)}</p>
         <p>${esc(next)}</p>
-        <button type="button" id="retry">기록 다시 불러오기</button>
+        <button type="button" id="${opts.idPrefix}retry">${esc(opts.retryLabel)}</button>
       </div>`;
   }
 
@@ -242,15 +234,17 @@ async function load() {
     </tr>`;
   }).join('');
 
-  const shownValue = numFmt.format(latest.normalized_value);
+  const source = opts.sourceHref
+    ? `<a href="${esc(opts.sourceHref)}">${esc(r.source_name)}</a>`
+    : esc(r.source_name);
 
-  document.getElementById('app').innerHTML = `
+  return `
     <div class="sheet">
       <div class="now">
         <div>
           <p class="caption">${isStale ? '마지막 정상값' : '최근 정상값'}, ${esc(latest.record_date)} 기록</p>
-          <p class="value"><span id="shown">${esc(shownValue)}</span><small>원</small></p>
-          <p class="caption">1달러당 원화 (단위 ${esc(latest.unit)})</p>
+          <p class="value"><span id="${opts.idPrefix}shown">${esc(numFmt.format(latest.normalized_value))}</span><small>${esc(opts.unitWord)}</small></p>
+          <p class="caption">${esc(opts.valueCaption)} (단위 ${esc(latest.unit)})</p>
           <p class="delta">${deltaText}</p>
           <p class="rule-note">변화 = 이 기록의 저장값 − 앞선 기록일의 저장값, 소수 넷째 자리 반올림</p>
         </div>
@@ -261,7 +255,8 @@ async function load() {
       </div>
       ${notice}
       <dl class="context">
-        <dt>출처</dt><dd><a href="https://www.exchangerate-api.com">${esc(r.source_name)}</a><br><small>${esc(r.source_url)}</small></dd>
+        <dt>상태</dt><dd><code id="${opts.idPrefix}status">${st ? esc(st.status.freshness) + ' / ' + esc(st.status.error_code) : '기록 없음'}</code></dd>
+        <dt>출처</dt><dd>${source}<br><small>${esc(r.source_url)}</small></dd>
         <dt>출처 시각</dt><dd>${esc(kst(r.source_time))}<br><small>${esc(utc(r.source_time))}, 원천이 값을 갱신한 시각</small></dd>
         <dt>조회 시각</dt><dd>${esc(kst(r.fetched_at))}<br><small>이 장부가 원천에서 값을 가져온 시각</small></dd>
         <dt>기준 시간대</dt><dd>${esc(r.record_timezone)} (기록 날짜도 이 시간대로 정해요)</dd>
@@ -269,24 +264,57 @@ async function load() {
       </dl>
     </div>
 
-    <section aria-labelledby="ledger-h">
-      <h2 id="ledger-h">일별 기록 ${rows.length}줄</h2>
+    <section>
+      <h2>일별 기록 ${rows.length}줄</h2>
       <p>시각은 모두 KST예요. 같은 날 여러 번 조회해도 그날 줄 하나만 남아요.</p>
       <div class="ledger-scroll">
         <table class="ledger">
-          <thead><tr><th>기록일</th><th class="num">1달러(원)</th><th class="num">앞선 기록 대비</th><th>출처 시각</th><th>조회 시각</th></tr></thead>
+          <thead><tr><th>기록일</th><th class="num">${esc(opts.ledgerValueHead)}</th><th class="num">앞선 기록 대비</th><th>출처 시각</th><th>조회 시각</th></tr></thead>
           <tbody>${ledgerRows}</tbody>
         </table>
       </div>
-    </section>
+    </section>`;
+}
 
+async function getJson(url) {
+  const res = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+  if (res.status === 404) return { missing: true };
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  return { data: await res.json() };
+}
+
+function renderEmpty(msg) {
+  document.getElementById('app').innerHTML = `<div class="sheet"><p>${msg}</p></div>`;
+}
+
+// ---------- 실제 장부 ----------
+async function load() {
+  let daily, status;
+  try {
+    [daily, status] = await Promise.all([getJson('data/daily.json'), getJson('data/status.json')]);
+  } catch (err) {
+    renderEmpty(`기록 파일을 불러오지 못했어요 (${esc(err.message)}). 잠시 뒤 새로고침하세요.`);
+    return;
+  }
+  const rows = daily.missing ? [] : daily.data;
+  const st = status.missing ? null : status.data;
+  if (rows.length === 0) {
+    renderEmpty('아직 저장된 기록이 없어요. 저장소의 Actions 탭에서 “T04 환율 수집”을 실행하면 첫 줄이 생겨요.');
+    return;
+  }
+  const latest = rows[rows.length - 1];
+
+  document.getElementById('app').innerHTML = boardHtml(rows, st, {
+    idPrefix: 'live-', unitWord: '원', valueCaption: '1달러당 원화', ledgerValueHead: '1달러(원)',
+    sourceHref: 'https://www.exchangerate-api.com', retryLabel: '기록 다시 불러오기'
+  }) + `
     <section aria-labelledby="check-h">
       <h2 id="check-h">원자료, 저장값, 화면값 대조</h2>
       <p>${esc(latest.record_date)} 기록의 값을 세 곳에서 읽어 비교해요.</p>
       <div id="check"><p>원자료를 불러오는 중이에요.</p></div>
     </section>`;
 
-  const retry = document.getElementById('retry');
+  const retry = document.getElementById('live-retry');
   if (retry) retry.addEventListener('click', load);
 
   // 대조: raw/<기록일>.json의 rates.KRW, daily.json 저장값, 화면에 그려진 글자를 숫자로 되돌린 값
@@ -295,7 +323,7 @@ async function load() {
     const raw = await getJson(`data/raw/${latest.record_date}.json`);
     const rawValue = raw.missing ? null : raw.data.rates.KRW;
     const stored = latest.normalized_value;
-    const screen = Number(document.getElementById('shown').textContent.replace(/,/g, ''));
+    const screen = Number(document.getElementById('live-shown').textContent.replace(/,/g, ''));
     const allMatch = rawValue === stored && stored === screen;
     checkEl.innerHTML = `
       <table class="check">
@@ -309,7 +337,124 @@ async function load() {
   }
 }
 
+// ---------- 합성 재생 (공개 fixture, 가짜 시험값) ----------
+// 실제 장부 파일(data/)은 읽거나 쓰지 않음. 상태는 이 페이지 메모리에만 있음.
+const BASE = ['T04-NORMAL-D1-A', 'T04-NORMAL-D1-B'];
+const SCENARIOS = {
+  daily:   { label: '정상·일별 저장', steps: [...BASE, 'T04-NORMAL-D1-B', 'T04-NORMAL-D2'] },
+  timeout: { label: '느린 응답', steps: [...BASE, 'T04-TIMEOUT'] },
+  auth:    { label: '401 거절', steps: [...BASE, 'T04-AUTH-401'] },
+  rate:    { label: '호출 제한 429', steps: [...BASE, 'T04-RATE-429'] },
+  offline: { label: '오프라인', steps: [...BASE, 'T04-OFFLINE'] },
+  schema:  { label: '형식 변경', steps: [...BASE, 'T04-SCHEMA-BREAK'] }
+};
+const fixtures = {};
+let replay = { state: Lib.resetReplayState(), log: [] };
+
+function observed(state) {
+  const latest = state.rows[state.rows.length - 1] || null;
+  const c = latest ? Lib.comparisonFor(state.rows, latest) : null;
+  return {
+    freshness: state.status ? state.status.status.freshness : null,
+    error_code: state.status ? state.status.status.error_code : null,
+    row_count: state.rows.length,
+    stored_value: latest ? latest.normalized_value : null,
+    delta: c && c.state === 'comparable' ? c.magnitude : null,
+    record_date: latest ? latest.record_date : null
+  };
+}
+
+function step(id, note) {
+  const fx = fixtures[id];
+  const before = replay.state.rows.length;
+  replay.state = Lib.replayFixture(replay.state, fx);
+  const got = observed(replay.state);
+  const exp = fx.expected;
+  const keys = ['freshness', 'error_code', 'row_count', 'stored_value', 'delta'];
+  const ok = keys.every((k) => got[k] === exp[k]) && (!exp.record_date || got.record_date === exp.record_date);
+  replay.log.push({ id, note, before, got, ok });
+}
+
+function runScenario(key) {
+  replay = { state: Lib.resetReplayState(), log: [] };
+  SCENARIOS[key].steps.forEach((id, i) => step(id, key === 'daily' && i === 2 ? '같은 날 재실행' : ''));
+  renderReplay();
+}
+
+function retryReplay() {
+  step('T04-RECOVER-D2', '다시 시도');
+  renderReplay();
+}
+
+function renderReplay() {
+  const box = document.getElementById('replay-board');
+  const logEl = document.getElementById('replay-log');
+  const { state, log } = replay;
+  box.innerHTML = state.rows.length === 0
+    ? '<div class="sheet"><p>위 버튼으로 시나리오를 고르면 초기화한 뒤 fixture를 차례로 재생해요.</p></div>'
+    : boardHtml(state.rows, state.status, {
+        idPrefix: 'replay-', unitWord: ' pt', valueCaption: '합성 지수 값', ledgerValueHead: '합성 값(pt)',
+        sourceHref: null, retryLabel: '다시 시도 (T04-RECOVER-D2 재생)'
+      });
+  const retry = document.getElementById('replay-retry');
+  if (retry) retry.addEventListener('click', retryReplay);
+
+  if (log.length === 0) { logEl.innerHTML = ''; return; }
+  const allOk = log.every((l) => l.ok);
+  logEl.innerHTML = `
+    <section>
+      <h2>재생 단계</h2>
+      <div class="ledger-scroll">
+        <table class="ledger">
+          <thead><tr><th>#</th><th>fixture</th><th>상태</th><th class="num">일별 행 (전→후)</th><th class="num">마지막 정상값</th><th class="num">전일 대비</th><th>expected</th></tr></thead>
+          <tbody>${log.map((l, i) => `<tr>
+            <td>${i + 1}</td>
+            <td>${esc(l.id)}${l.note ? ` <small>(${esc(l.note)})</small>` : ''}</td>
+            <td>${esc(l.got.freshness)} / ${esc(l.got.error_code)}</td>
+            <td class="num">${l.before} → ${l.got.row_count}</td>
+            <td class="num">${esc(String(l.got.stored_value))}</td>
+            <td class="num">${l.got.delta === null ? '—' : esc(String(l.got.delta))}</td>
+            <td>${l.ok ? '일치' : '<strong>불일치</strong>'}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <p class="verdict" id="replay-verdict">${allOk ? `${log.length}단계 모두 fixture의 expected와 일치해요.` : '기대값과 다른 단계가 있어요.'}</p>
+    </section>`;
+}
+
+async function sha256Hex(buf) {
+  const h = await crypto.subtle.digest('SHA-256', buf);
+  return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function initReplay() {
+  const controls = document.getElementById('replay-controls');
+  const hashEl = document.getElementById('replay-hash');
+  try {
+    const manifest = await (await fetch('replay/asset-manifest.json', { cache: 'no-store' })).json();
+    const entries = manifest.files.filter((f) => f.path.startsWith('fixtures/'));
+    let matched = 0;
+    for (const f of entries) {
+      const buf = await (await fetch(`replay/${f.path}`, { cache: 'no-store' })).arrayBuffer();
+      if ((await sha256Hex(buf)) === f.sha256) matched += 1;
+      const fx = JSON.parse(new TextDecoder().decode(buf));
+      fixtures[fx.fixture_id] = fx;
+    }
+    hashEl.innerHTML = `공개 꾸러미 <code>${esc(manifest.package_id)}</code>의 fixture ${entries.length}개 SHA-256 대조: <strong id="replay-hash-result">${matched}/${entries.length} 일치</strong>`;
+  } catch (e) {
+    hashEl.textContent = `fixture를 불러오지 못했어요 (${e.message}).`;
+    return;
+  }
+  controls.innerHTML = Object.entries(SCENARIOS)
+    .map(([k, s]) => `<button type="button" data-scenario="${k}">${esc(s.label)}</button>`).join('')
+    + '<button type="button" class="ghost" id="replay-reset">초기화</button>';
+  controls.querySelectorAll('[data-scenario]').forEach((b) => b.addEventListener('click', () => runScenario(b.dataset.scenario)));
+  document.getElementById('replay-reset').addEventListener('click', () => { replay = { state: Lib.resetReplayState(), log: [] }; renderReplay(); });
+  renderReplay();
+}
+
 load();
+initReplay();
 </script>
 </body>
 </html>

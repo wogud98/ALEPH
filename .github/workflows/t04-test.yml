@@ -1,0 +1,26 @@
+name: T04 검증
+
+on:
+  push:
+    paths:
+      - 'challenge/T04/collector/**'
+      - 'challenge/T04/replay/**'
+      - '.github/workflows/t04-test.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: fixture 재생·수집기 규칙 검사
+        run: node challenge/T04/collector/test.js

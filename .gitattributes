@@ -1,0 +1,2 @@
+# T04 공개 fixture는 SHA-256 대조 대상이라 줄바꿈 변환을 하지 않음
+challenge/T04/replay/** -text

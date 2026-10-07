@@ -1,7 +1,11 @@
+// T04 공통 로직: live 수집기(collect.js, Node)와 공개 화면의 합성 재생(index.html, 브라우저)이 같은 함수를 씀.
+// 이 파일은 네트워크·파일 I/O를 하지 않음. Node에서는 require, 브라우저에서는 window.T04Lib로 불러옴.
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.T04Lib = api;
+})(typeof self !== 'undefined' ? self : this, function () {
 'use strict';
-
-// T04 공통 로직: live 수집기와 (다음 주에 붙일) fixture replay가 같은 함수를 쓰도록 분리함.
-// 이 파일은 네트워크·파일 I/O를 하지 않음.
 
 const SIGNAL = Object.freeze({
   signal_id: 'usd-krw',
@@ -99,19 +103,38 @@ function normalize(raw, fetchedAtIso) {
   return reading;
 }
 
+// 공개 참조 adapter(adapter-reset.example.js)의 검사와 같은 규칙
 function validateNormalizedReading(reading) {
+  if (!reading || typeof reading !== 'object' || Array.isArray(reading)) {
+    throw new TypeError('정규화 값이 객체가 아님');
+  }
   const keys = Object.keys(reading).sort();
   const expected = [...NORMALIZED_KEYS].sort();
   if (keys.length !== expected.length || keys.some((k, i) => k !== expected[i])) {
     throw new TypeError('정규화 키가 스키마와 다름');
   }
-  if (!/^[a-z0-9][a-z0-9._-]*$/.test(reading.signal_id)) throw new TypeError('signal_id 형식 오류');
+  if (typeof reading.signal_id !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/.test(reading.signal_id) || reading.signal_id.length > 100) {
+    throw new TypeError('signal_id 형식 오류');
+  }
   if (typeof reading.normalized_value !== 'number' || !Number.isFinite(reading.normalized_value)) {
     throw new TypeError('normalized_value는 유한한 숫자여야 함');
   }
-  if (!reading.source_url.startsWith('https://')) throw new TypeError('source_url은 HTTPS여야 함');
+  for (const field of ['unit', 'source_name']) {
+    if (typeof reading[field] !== 'string' || reading[field].trim() === '') {
+      throw new TypeError(`${field}는 비어 있지 않은 문자열이어야 함`);
+    }
+  }
+  if (typeof reading.source_url !== 'string' || !/^https:\/\/[^\s]+$/.test(reading.source_url)) {
+    throw new TypeError('source_url은 HTTPS여야 함');
+  }
+  if (reading.source_time !== null && (typeof reading.source_time !== 'string' || Number.isNaN(new Date(reading.source_time).getTime()))) {
+    throw new TypeError('source_time은 유효한 시각이거나 null이어야 함');
+  }
+  if (typeof reading.fetched_at !== 'string' || Number.isNaN(new Date(reading.fetched_at).getTime())) {
+    throw new TypeError('fetched_at은 유효한 시각이어야 함');
+  }
   if (reading.record_timezone !== 'Asia/Seoul') throw new TypeError('record_timezone은 Asia/Seoul이어야 함');
-  if (reading.record_date !== kstDate(reading.fetched_at)) {
+  if (typeof reading.record_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(reading.record_date) || reading.record_date !== kstDate(reading.fetched_at)) {
     throw new TypeError('record_date는 fetched_at의 Asia/Seoul 날짜여야 함');
   }
   return true;
@@ -162,7 +185,60 @@ function comparisonFor(rows, current) {
   };
 }
 
-module.exports = {
+// ---- 합성 재생 (공개 fixture 전용) ----
+// 상태 모양은 live의 data/daily.json(rows)·data/status.json(status)과 같게 맞춰 화면이 같은 그리기 함수를 씀.
+function resetReplayState() {
+  return { rows: [], status: null };
+}
+
+// fixture 한 건을 재생해 새 상태를 돌려줌. 분류 규칙은 collect.js와 같음:
+// timeout/offline 전송 → 해당 코드, 비정상 HTTP → classifyHttpStatus, 2xx인데 형식이 깨짐 → schema_error.
+// 실패는 rows(마지막 정상값과 일별 기록)를 건드리지 않음.
+function replayFixture(state, fixture) {
+  const t = fixture.transport;
+  const at = fixture.virtual_now;
+  const retryHeader = t.headers && t.headers['retry-after'];
+  const prev = state.status;
+
+  const fail = (code, message) => ({
+    rows: state.rows.map((r) => ({ ...r })),
+    status: {
+      status: { freshness: 'stale', error_code: code },
+      last_success_at: prev ? prev.last_success_at || null : null,
+      last_success_record_id: prev ? prev.last_success_record_id || null : null,
+      last_run: {
+        at, outcome: 'error', error_code: code, http_status: t.status ?? null,
+        retry_after_seconds: retryHeader && !Number.isNaN(Number(retryHeader)) ? Number(retryHeader) : null,
+        message, fixture_id: fixture.fixture_id
+      }
+    }
+  });
+
+  if (t.mode === 'timeout') return fail('timeout', `${t.deadline_ms}ms 안에 응답이 오지 않음`);
+  if (t.mode === 'offline') return fail('offline', '원천에 연결하지 못함');
+  if (!(t.status >= 200 && t.status < 300)) return fail(classifyHttpStatus(t.status), `HTTP ${t.status}`);
+
+  let result;
+  try {
+    result = upsertDaily(state.rows, fixture.payload);
+  } catch (err) {
+    return fail('schema_error', err.message);
+  }
+  return {
+    rows: result.rows,
+    status: {
+      status: { freshness: 'fresh', error_code: 'none' },
+      last_success_at: at,
+      last_success_record_id: result.row.record_id,
+      last_run: {
+        at, outcome: 'success', error_code: 'none', http_status: t.status, retry_after_seconds: null,
+        message: `일별 기록 ${result.action === 'insert' ? '추가' : '갱신'}`, fixture_id: fixture.fixture_id
+      }
+    }
+  };
+}
+
+return {
   SIGNAL,
   NORMALIZED_KEYS,
   ERROR_CODES,
@@ -172,5 +248,8 @@ module.exports = {
   normalize,
   validateNormalizedReading,
   upsertDaily,
-  comparisonFor
+  comparisonFor,
+  resetReplayState,
+  replayFixture
 };
+});
