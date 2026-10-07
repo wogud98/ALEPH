@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>달러 환율 장부 — 오늘의 진짜 정보판</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #E6ECE7;
+    --sheet: #F8FAF7;
+    --ink: #1D2742;
+    --muted: #5B6676;
+    --rule: #C5D3CA;
+    --fresh: #2A56A3;
+    --stale: #B3261E;
+    --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    --print: "Nanum Gothic Coding", "D2Coding", ui-monospace, "Menlo", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #121722; --sheet: #1A2130; --ink: #E6EAF2; --muted: #9AA4B5;
+      --rule: #2E394B; --fresh: #8EB0EE; --stale: #F2948A;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
+
+  header h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); max-width: 60ch; }
+
+  .sheet {
+    background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px;
+    margin-top: 28px; padding: 28px 28px 24px;
+  }
+
+  /* 오늘 고시 */
+  .now { display: grid; grid-template-columns: 1fr auto; gap: 8px 20px; align-items: start; }
+  .now .caption { margin: 0; color: var(--muted); font-size: 0.95rem; }
+  .value {
+    margin: 2px 0 0; font-weight: 700; font-size: clamp(2.6rem, 9vw, 4rem); line-height: 1.05;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+  }
+  .value small { font-size: 0.4em; font-weight: 600; margin-left: 6px; letter-spacing: 0; }
+  .delta { margin: 10px 0 0; font-size: 1.05rem; }
+  .rule-note { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; }
+
+  /* 상태 도장: 이 페이지에서 유일하게 힘을 준 요소 */
+  .stamp {
+    width: 104px; height: 104px; border-radius: 50%;
+    border: 3px double currentColor; color: var(--fresh);
+    display: grid; place-content: center; text-align: center;
+    transform: rotate(-9deg); margin-top: 6px;
+    animation: press 320ms cubic-bezier(.2,.9,.3,1.2) both;
+  }
+  .stamp b { font-size: 1.15rem; line-height: 1.2; }
+  .stamp span { font-size: 0.75rem; line-height: 1.3; }
+  .stamp.is-stale { color: var(--stale); }
+  @keyframes press { from { transform: rotate(-9deg) scale(1.5); opacity: 0; } to { transform: rotate(-9deg) scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .stamp { animation: none; } }
+
+  .notice {
+    margin-top: 22px; padding: 14px 16px; border-left: 4px solid var(--stale);
+    background: color-mix(in srgb, var(--stale) 8%, transparent);
+  }
+  .notice h2 { font-size: 1rem; margin: 0 0 4px; }
+  .notice p { margin: 0 0 6px; }
+  .notice p:last-of-type { margin-bottom: 10px; }
+
+  button {
+    font: inherit; font-weight: 600; color: var(--sheet); background: var(--ink);
+    border: 0; border-radius: 4px; padding: 8px 14px; cursor: pointer;
+  }
+  button:focus-visible, a:focus-visible { outline: 3px solid var(--fresh); outline-offset: 2px; }
+  a { color: inherit; text-underline-offset: 3px; }
+
+  dl.context { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 24px 0 0; }
+  dl.context dt { color: var(--muted); }
+  dl.context dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+  section { margin-top: 36px; }
+  section h2 { font-size: 1.15rem; margin: 0 0 4px; }
+  section > p { margin: 0 0 12px; color: var(--muted); font-size: 0.92rem; }
+
+  /* 통장 인자(印字) 줄 */
+  .ledger-scroll { overflow-x: auto; }
+  table.ledger {
+    width: 100%; border-collapse: collapse; font-family: var(--print); font-size: 0.92rem;
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .ledger th { text-align: left; font-family: var(--sans); font-weight: 600; color: var(--muted); font-size: 0.82rem; padding: 6px 12px 6px 0; border-bottom: 2px solid var(--ink); }
+  .ledger td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--rule); }
+  .ledger td.num, .ledger th.num { text-align: right; padding-right: 24px; }
+
+  table.check { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .check th { text-align: left; font-weight: 400; color: var(--muted); padding: 4px 18px 4px 0; }
+  .check td { padding: 4px 18px 4px 0; font-family: var(--print); }
+  .verdict { margin: 10px 0 0; font-weight: 600; }
+
+  footer { margin-top: 40px; color: var(--muted); font-size: 0.88rem; }
+  footer p { margin: 0 0 4px; }
+
+  @media (max-width: 560px) {
+    .sheet { padding: 22px 18px 20px; }
+    .now { grid-template-columns: 1fr; }
+    .stamp { width: 96px; height: 96px; justify-self: start; }
+    .stamp b { font-size: 1rem; }
+    dl.context { grid-template-columns: 1fr; gap: 0; }
+    dl.context dt { margin-top: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>달러 환율 장부</h1>
+    <p>미국 달러 1달러가 원화로 얼마인지 매일 한 줄씩 기록해요. 값을 받지 못한 날에는 마지막 정상값을 지우지 않고, 왜 오래된 값인지 함께 알려요.</p>
+  </header>
+
+  <main id="app" aria-live="polite">
+    <div class="sheet"><p>기록을 불러오는 중이에요.</p></div>
+  </main>
+
+  <footer>
+    <p>환율 출처: <a href="https://www.exchangerate-api.com">Rates By Exchange Rate API</a> (키 없이 쓰는 공개 엔드포인트, 하루 1회 갱신)</p>
+    <p>수집은 GitHub Actions가 매일 10:17, 22:17(KST)에 실행하고, 같은 날 다시 성공하면 새 줄을 만들지 않고 그날 줄을 고쳐 써요.</p>
+  </footer>
+</div>
+
+<script>
+'use strict';
+
+const TZ = 'Asia/Seoul';
+const ERRORS = {
+  timeout:      { short: '시간 초과', what: '원천이 10초 안에 응답하지 않았어요.', next: '원천이 잠시 느린 상태예요. 다음 자동 수집이나 수동 실행 때 다시 시도돼요.' },
+  auth:         { short: '접근 거절', what: '원천이 요청을 거절했어요 (HTTP 401/403).', next: '키 없이 쓰던 공개 엔드포인트의 이용 조건이 바뀌었는지 원천 문서를 확인해야 해요.' },
+  rate_limit:   { short: '호출 제한', what: '원천의 호출 한도를 넘었어요 (HTTP 429).', next: '차단은 보통 20분 뒤 풀려요. 그 뒤에 다시 시도하세요.' },
+  offline:      { short: '연결 실패', what: '원천 서버에 연결하지 못했어요.', next: '네트워크나 원천 서버 상태를 확인한 뒤 다시 시도하세요.' },
+  schema_error: { short: '형식 변경', what: '응답이 예상한 형식과 달라 값을 읽지 못했어요.', next: '원천 응답 구조가 바뀌었는지 확인하고 수집 코드를 고쳐야 해요.' }
+};
+
+const numFmt = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 10 });
+const deltaFmt = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+
+function fmtTime(iso, tz) {
+  if (!iso) return '없음';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+  }).formatToParts(new Date(iso));
+  const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+const kst = (iso) => `${fmtTime(iso, TZ)} KST`;
+const utc = (iso) => `${fmtTime(iso, 'UTC')} UTC`;
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// 전날 대비 규칙(수집기 lib.js의 comparisonFor와 동일):
+// 변화 = 이 기록의 저장값 − 바로 앞 기록일의 저장값. 표시는 소수 넷째 자리 반올림.
+function comparison(rows, current) {
+  const prev = rows
+    .filter((r) => r.signal_id === current.signal_id && r.record_date < current.record_date)
+    .sort((a, b) => b.record_date.localeCompare(a.record_date))[0];
+  if (!prev) return null;
+  if (prev.unit !== current.unit) return { prev, mismatch: true };
+  const signed = current.normalized_value - prev.normalized_value;
+  const rounded = Math.round(Math.abs(signed) * 1e4) / 1e4;
+  return { prev, signed, rounded, direction: rounded === 0 ? 'same' : signed > 0 ? 'up' : 'down' };
+}
+
+async function getJson(url) {
+  const res = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+  if (res.status === 404) return { missing: true };
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  return { data: await res.json() };
+}
+
+function renderEmpty(msg) {
+  document.getElementById('app').innerHTML = `<div class="sheet"><p>${msg}</p></div>`;
+}
+
+async function load() {
+  let daily, status;
+  try {
+    [daily, status] = await Promise.all([getJson('data/daily.json'), getJson('data/status.json')]);
+  } catch (err) {
+    renderEmpty(`기록 파일을 불러오지 못했어요 (${esc(err.message)}). 잠시 뒤 새로고침하세요.`);
+    return;
+  }
+  const rows = daily.missing ? [] : daily.data;
+  const st = status.missing ? null : status.data;
+  if (rows.length === 0) {
+    renderEmpty('아직 저장된 기록이 없어요. 저장소의 Actions 탭에서 “T04 환율 수집”을 실행하면 첫 줄이 생겨요.');
+    return;
+  }
+
+  const latest = rows[rows.length - 1];
+  const r = latest.reading;
+  const isStale = st && st.status.freshness === 'stale';
+  const err = isStale ? ERRORS[st.status.error_code] : null;
+  const cmp = comparison(rows, latest);
+
+  let deltaText = '앞선 기록일이 없어서 아직 비교할 수 없어요.';
+  if (cmp && cmp.mismatch) deltaText = `앞선 기록(${cmp.prev.record_date})과 단위가 달라 비교하지 않았어요.`;
+  else if (cmp) {
+    const word = cmp.direction === 'up' ? '올랐어요' : cmp.direction === 'down' ? '내렸어요' : '같아요';
+    deltaText = cmp.direction === 'same'
+      ? `앞선 기록(${cmp.prev.record_date})과 같아요.`
+      : `앞선 기록(${cmp.prev.record_date})보다 <strong>${deltaFmt.format(cmp.rounded)}원</strong> ${word}.`;
+  }
+
+  let notice = '';
+  if (isStale) {
+    let next = err.next;
+    const ra = st.last_run.retry_after_seconds;
+    if (st.status.error_code === 'rate_limit' && ra) next = `원천이 ${Math.ceil(ra / 60)}분 뒤 다시 시도하라고 알려 왔어요.`;
+    notice = `
+      <div class="notice" role="status">
+        <h2>지금 보이는 값은 ${esc(latest.record_date)} 기록이에요 (${esc(err.short)})</h2>
+        <p>${esc(kst(st.last_run.at))} 수집 시도에서 ${esc(err.what)}</p>
+        <p>${esc(next)}</p>
+        <button type="button" id="retry">기록 다시 불러오기</button>
+      </div>`;
+  }
+
+  const ledgerRows = rows.slice().reverse().map((row) => {
+    const c = comparison(rows, row);
+    const d = !c ? '—' : c.mismatch ? '단위 다름' : c.direction === 'same' ? '0' : `${c.direction === 'up' ? '▲' : '▼'} ${deltaFmt.format(c.rounded)}`;
+    return `<tr>
+      <td>${esc(row.record_date)}</td>
+      <td class="num">${esc(numFmt.format(row.normalized_value))}</td>
+      <td class="num">${esc(d)}</td>
+      <td>${esc(fmtTime(row.reading.source_time, TZ))}</td>
+      <td>${esc(fmtTime(row.last_fetched_at, TZ))}</td>
+    </tr>`;
+  }).join('');
+
+  const shownValue = numFmt.format(latest.normalized_value);
+
+  document.getElementById('app').innerHTML = `
+    <div class="sheet">
+      <div class="now">
+        <div>
+          <p class="caption">${isStale ? '마지막 정상값' : '최근 정상값'}, ${esc(latest.record_date)} 기록</p>
+          <p class="value"><span id="shown">${esc(shownValue)}</span><small>원</small></p>
+          <p class="caption">1달러당 원화 (단위 ${esc(latest.unit)})</p>
+          <p class="delta">${deltaText}</p>
+          <p class="rule-note">변화 = 이 기록의 저장값 − 앞선 기록일의 저장값, 소수 넷째 자리 반올림</p>
+        </div>
+        <div class="stamp ${isStale ? 'is-stale' : ''}" aria-label="상태: ${isStale ? '오래된 값, ' + esc(err.short) : '정상'}">
+          <b>${isStale ? '오래된 값' : '정상'}</b>
+          <span>${isStale ? esc(err.short) : esc(latest.record_date.slice(5).replace('-', '.'))}</span>
+        </div>
+      </div>
+      ${notice}
+      <dl class="context">
+        <dt>출처</dt><dd><a href="https://www.exchangerate-api.com">${esc(r.source_name)}</a><br><small>${esc(r.source_url)}</small></dd>
+        <dt>출처 시각</dt><dd>${esc(kst(r.source_time))}<br><small>${esc(utc(r.source_time))}, 원천이 값을 갱신한 시각</small></dd>
+        <dt>조회 시각</dt><dd>${esc(kst(r.fetched_at))}<br><small>이 장부가 원천에서 값을 가져온 시각</small></dd>
+        <dt>기준 시간대</dt><dd>${esc(r.record_timezone)} (기록 날짜도 이 시간대로 정해요)</dd>
+        <dt>마지막 수집 시도</dt><dd>${st ? `${esc(kst(st.last_run.at))}, ${st.last_run.outcome === 'success' ? '성공' : '실패 (' + esc(ERRORS[st.last_run.error_code] ? ERRORS[st.last_run.error_code].short : st.last_run.error_code) + ')'}` : '기록 없음'}</dd>
+      </dl>
+    </div>
+
+    <section aria-labelledby="ledger-h">
+      <h2 id="ledger-h">일별 기록 ${rows.length}줄</h2>
+      <p>시각은 모두 KST예요. 같은 날 여러 번 조회해도 그날 줄 하나만 남아요.</p>
+      <div class="ledger-scroll">
+        <table class="ledger">
+          <thead><tr><th>기록일</th><th class="num">1달러(원)</th><th class="num">앞선 기록 대비</th><th>출처 시각</th><th>조회 시각</th></tr></thead>
+          <tbody>${ledgerRows}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="check-h">
+      <h2 id="check-h">원자료, 저장값, 화면값 대조</h2>
+      <p>${esc(latest.record_date)} 기록의 값을 세 곳에서 읽어 비교해요.</p>
+      <div id="check"><p>원자료를 불러오는 중이에요.</p></div>
+    </section>`;
+
+  const retry = document.getElementById('retry');
+  if (retry) retry.addEventListener('click', load);
+
+  // 대조: raw/<기록일>.json의 rates.KRW, daily.json 저장값, 화면에 그려진 글자를 숫자로 되돌린 값
+  const checkEl = document.getElementById('check');
+  try {
+    const raw = await getJson(`data/raw/${latest.record_date}.json`);
+    const rawValue = raw.missing ? null : raw.data.rates.KRW;
+    const stored = latest.normalized_value;
+    const screen = Number(document.getElementById('shown').textContent.replace(/,/g, ''));
+    const allMatch = rawValue === stored && stored === screen;
+    checkEl.innerHTML = `
+      <table class="check">
+        <tr><th>원자료 (raw/${esc(latest.record_date)}.json, rates.KRW)</th><td>${rawValue === null ? '파일 없음' : esc(String(rawValue))}</td></tr>
+        <tr><th>저장값 (daily.json, normalized_value)</th><td>${esc(String(stored))}</td></tr>
+        <tr><th>화면값 (위에 표시된 숫자)</th><td>${esc(String(screen))}</td></tr>
+      </table>
+      <p class="verdict">${allMatch ? '세 값이 같아요.' : '세 값이 서로 달라요. 수집 코드나 표시 규칙을 확인해야 해요.'}</p>`;
+  } catch (e) {
+    checkEl.innerHTML = `<p>원자료를 불러오지 못했어요 (${esc(e.message)}).</p>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>
