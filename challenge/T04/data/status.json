@@ -3,10 +3,10 @@
     "freshness": "fresh",
     "error_code": "none"
   },
-  "last_success_at": "2026-10-07T07:35:48.538Z",
-  "last_success_record_id": "usd-krw-2026-10-07",
+  "last_success_at": "2026-10-07T19:22:52.052Z",
+  "last_success_record_id": "usd-krw-2026-10-08",
   "last_run": {
-    "at": "2026-10-07T07:35:48.538Z",
+    "at": "2026-10-07T19:22:52.052Z",
     "outcome": "success",
     "error_code": "none",
     "http_status": 200,
