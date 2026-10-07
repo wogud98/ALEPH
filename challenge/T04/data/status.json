@@ -1,0 +1,16 @@
+{
+  "status": {
+    "freshness": "fresh",
+    "error_code": "none"
+  },
+  "last_success_at": "2026-10-07T07:35:48.538Z",
+  "last_success_record_id": "usd-krw-2026-10-07",
+  "last_run": {
+    "at": "2026-10-07T07:35:48.538Z",
+    "outcome": "success",
+    "error_code": "none",
+    "http_status": 200,
+    "retry_after_seconds": null,
+    "message": "일별 기록 추가"
+  }
+}
