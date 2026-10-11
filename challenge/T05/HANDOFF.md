@@ -7,6 +7,8 @@
 
 ## 현재 상태 (AI A가 한 것: 고칠 것 1~2)
 
+저장소 버전: 작업 전 `0be119d` → AI A 종료 커밋 `dad1cc7`(이 문서가 처음 들어간 커밋). `git log -1 --format=%h -- challenge/T05/HANDOFF.md`로 대조할 수 있다. *(AI B 완료 뒤 진행자가 추가함. LOG.md의 인수인계 누락 항목 참고)*
+
 `challenge/T04/collector/collect.js`의 `run()` 안 `try` 블록에 건너뛰기 분기를 넣었다.
 
 - 조건: 이번 KST 기록일 행(`sameDay`)이 없고, 그보다 앞선 가장 최근 행(`previous`)의 `reading.source_time`이 이번 `reading.source_time`과 같음.
