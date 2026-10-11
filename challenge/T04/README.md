@@ -18,6 +18,7 @@ USD→KRW 환율을 GitHub Actions가 매일 자동으로 조회해 이 폴더�
 ## 데이터 파일
 
 - `data/daily.json` — 일별 기록 배열. `signal_id + record_date(KST)`당 1행. 같은 날 다시 성공하면 그 행을 갱신하고 `record_id`, `first_fetched_at`은 유지한다. 각 행의 `reading`은 `normalized-reading.schema.json` 형식 그대로다.
+- 다음 KST 날짜에 수집해도 원천 시각이 직전 기록일 행과 같으면 새 행을 만들지 않고 성공한 건너뛰기로 기록한다.
 - `data/raw/<기록일>.json` — 그날 행에 쓰인 원 응답 본문을 가공 없이 보관.
 - `data/status.json` — `status.freshness`(fresh/stale)와 `status.error_code`(none/timeout/auth/rate_limit/offline/schema_error), 마지막 시도 정보.
 - `data/runs.jsonl` — 성공·실패를 포함한 모든 수집 시도 로그 (한 줄에 JSON 하나).

@@ -100,7 +100,13 @@ async function run(options = {}) {
       .sort((a, b) => b.record_date.localeCompare(a.record_date))[0];
     if (!sameDay && previous && previous.reading && previous.reading.source_time === reading.source_time) {
       // daily.json과 raw/는 건드리지 않음
-      // TODO(T05 고칠 것 3): status.json을 fresh/none + 직전 행 record_id + 안내 문구로 갱신
+      const status = {
+        status: { freshness: 'fresh', error_code: 'none' },
+        last_success_at: fetchedAt,
+        last_success_record_id: previous.record_id,
+        last_run: { at: fetchedAt, outcome: 'success', error_code: 'none', http_status: httpStatus, retry_after_seconds: null, message: '같은 원천 시각이라 새 기록을 만들지 않음' }
+      };
+      writeAtomic(files.status, JSON.stringify(status, null, 2) + '\n');
       runLog = { at: fetchedAt, outcome: 'success', action: 'skip_same_source', record_date: reading.record_date, source_time: reading.source_time, http_status: httpStatus };
       console.log(`[건너뜀] ${reading.record_date} 원천 시각 ${reading.source_time}이 직전 기록일 ${previous.record_date}과 같음`);
     } else {
