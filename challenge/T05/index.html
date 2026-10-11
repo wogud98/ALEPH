@@ -46,8 +46,14 @@
   dl.check dd { margin: 0; }
   .note { color: var(--muted); font-size: 0.9rem; }
   .criterion { border-left: 3px solid var(--accent); padding: 8px 14px; margin: 0; font-size: 1.05rem; }
-  details { margin-top: 8px; }
+  details { border-top: 1px solid var(--rule); padding: 10px 0; }
+  details:last-of-type { border-bottom: 1px solid var(--rule); }
   summary { cursor: pointer; font-weight: 600; }
+  details[open] summary { margin-bottom: 10px; }
+  .sub h3 { display: none; }
+  .headline { font-size: 1.15rem; margin: 0 0 6px; }
+  .headline .pass { margin-right: 6px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   a { color: var(--accent); }
   @media (max-width: 560px) {
     .sheet { padding: 18px 14px; }
@@ -63,16 +69,11 @@
     <p>환율 장부(T04)의 실제 버그 하나를 AI 하나가 절반 고치고 멈춘 뒤, 다른 서비스의 AI가 저장소와 인수인계 문서 한 장만 받아 끝냈습니다. 대화 전문은 넘기지 않았습니다.</p>
   </header>
 
-  <section class="sheet" aria-labelledby="how-h">
-    <h2 id="how-h">짧은 확인 방법</h2>
-    <dl class="check">
-      <dt>① 어디로</dt><dd>소스 <a href="https://github.com/wogud98/ALEPH/tree/main/challenge/T05">github.com/wogud98/ALEPH/challenge/T05</a> (Node 18 이상)</dd>
-      <dt>② 할 일</dt><dd><code>git clone https://github.com/wogud98/ALEPH</code> → <code>cd ALEPH</code> → <code>node challenge/T05/same-source.test.js</code></dd>
-      <dt>③ 통과 모습</dt><dd>마지막 줄 <code>10/10 통과</code>, 종료 코드 0</dd>
-      <dt>④ 안 될 때</dt><dd><code>FAIL  S0n …</code> 줄과 이유가 찍히고 마지막 줄이 <code>n/10 통과</code>(10 미만), 종료 코드 1</dd>
-    </dl>
+  <section class="sheet result" aria-labelledby="res-h">
+    <h2 id="res-h" class="sr">결과</h2>
+    <p class="headline"><span class="pass">성공</span> AI B가 대화 없이 인수인계 문서만 보고 남은 일을 끝내 고정 검사 <strong>10/10</strong>을 통과했습니다.</p>
+    <p class="note">순서 A 시작 → A 인계 → B 시작 → B 완료 · 두 AI 모두 상한(60분, 요청 20회) 안 · 고정 검사 변경 0건</p>
   </section>
-
   <section class="sheet" aria-labelledby="cmp-h">
     <h2 id="cmp-h">가린 비교표</h2>
     <p class="note">판정 구간에서는 모델·서비스 이름을 가렸습니다. 같은 최초 요청, 같은 검사 10개, 같은 상한(각 60분, 사람 요청 20회)으로 진행했습니다.</p>
@@ -91,68 +92,78 @@
     </div>
     <p class="note" style="margin-top:10px">오류 회차는 고정 검사 10개를 실행한 회차 중 하나 이상 FAIL이 나온 회차 수입니다. A는 계획대로 남겨 둔 S05가 실패했고, B의 첫 실행은 실행 환경(샌드박스)이 하위 프로세스를 막아 S10이 실패한 뒤 권한을 받아 다시 실행해 10/10이 되었습니다. 재작업량(추가·삭제 줄 수)은 위 버전 쌍으로 채점기가 계산하므로 손으로 적지 않았습니다.</p>
   </section>
-
   <section class="sheet" aria-labelledby="crit-h">
     <h2 id="crit-h">다음 작업의 도구 선택 기준</h2>
     <p class="criterion">범위를 나누고 인계 문서까지 써야 하는 첫 구현은 A처럼 자기 기록을 남기는 도구에, 문서가 정한 남은 일을 빨리 끝내는 마무리는 B처럼 빠른 도구에 먼저 맡기되, 커밋 같은 마지막 정리는 사람이 확인한다.</p>
   </section>
-
-  <section class="sheet" aria-labelledby="log-h">
-    <h2 id="log-h">작업 기록 (순서)</h2>
-    <div class="scroll">
-    <table>
-      <thead><tr><th>순서</th><th>사건</th><th>시각 (KST, 2026-10-11)</th><th>버전</th><th>검사</th></tr></thead>
-      <tbody>
-        <tr><td>0</td><td>검사 10개·상한 고정</td><td class="num">14:16:51</td><td class="mono">56f33c6</td><td class="num fail">5/10</td></tr>
-        <tr><td>1</td><td>AI A 시작</td><td class="num">17:40:46</td><td class="mono">0be119d</td><td class="num fail">5/10</td></tr>
-        <tr><td>2</td><td>AI A 종료·인수인계</td><td class="num">17:44:17</td><td class="mono">dad1cc7</td><td class="num fail">9/10</td></tr>
-        <tr><td>3</td><td>AI B 시작</td><td class="num">17:53:52</td><td class="mono">1d92607</td><td class="num fail">9/10</td></tr>
-        <tr><td>4</td><td>AI B 종료</td><td class="num">17:55:07</td><td class="mono">a5ca262</td><td class="num pass">10/10</td></tr>
-      </tbody>
-    </table>
-    </div>
-    <p class="note" style="margin-top:10px">원본 기록: <a href="https://github.com/wogud98/ALEPH/blob/main/challenge/T05/LOG.md">LOG.md</a>. 1d92607은 A가 적은 추정 시작 시각을 정확한 값으로 바꾼 기록 커밋입니다(코드 변경 없음).</p>
+  <section class="sheet" aria-labelledby="how-h">
+    <h2 id="how-h">짧은 확인 방법</h2>
+    <dl class="check">
+      <dt>① 어디로</dt><dd>소스 <a href="https://github.com/wogud98/ALEPH/tree/main/challenge/T05">github.com/wogud98/ALEPH/challenge/T05</a> (Node 18 이상)</dd>
+      <dt>② 할 일</dt><dd><code>git clone https://github.com/wogud98/ALEPH</code> → <code>cd ALEPH</code> → <code>node challenge/T05/same-source.test.js</code></dd>
+      <dt>③ 통과 모습</dt><dd>마지막 줄 <code>10/10 통과</code>, 종료 코드 0</dd>
+      <dt>④ 안 될 때</dt><dd><code>FAIL  S0n …</code> 줄과 이유가 찍히고 마지막 줄이 <code>n/10 통과</code>(10 미만), 종료 코드 1</dd>
+    </dl>
   </section>
-
-  <section class="sheet" aria-labelledby="fix-h">
-    <h2 id="fix-h">고친 것과 고정 검사</h2>
-    <p><strong>버그:</strong> 22:17 예약 수집이 GitHub 지연으로 다음 날 04:18에 돌았을 때, 원천은 아직 전날 값을 주고 있었습니다(원천 갱신 시각이 같음). 수집기는 기록일을 수집 시각으로만 정해서 이 값을 새 날짜 행으로 저장했고, 화면에 "전날 대비 변동 없음"이 잘못 나왔습니다.</p>
-    <p><strong>고침:</strong> 이번 응답의 원천 갱신 시각이 직전 기록일 행과 같고 오늘 행이 아직 없으면, 새 행을 만들지 않고 로그(<code>skip_same_source</code>)와 상태만 남깁니다.</p>
-    <p class="note">전체 조건: <a href="https://github.com/wogud98/ALEPH/blob/main/challenge/T05/TASK.md">TASK.md</a> · 검사 파일: <a href="https://github.com/wogud98/ALEPH/blob/main/challenge/T05/same-source.test.js">same-source.test.js</a> (고정 뒤 삭제·완화·기대값 변경 0건, <code>git diff 56f33c6 -- challenge/T05/same-source.test.js</code> 비어 있음)</p>
-    <div class="scroll">
-    <table>
-      <thead><tr><th>ID</th><th>입력 (가짜 원천·가짜 시계)</th><th>기대값</th></tr></thead>
-      <tbody>
-        <tr><td>S01</td><td>1일차 10:00 수집 → 다음 날 04:18에 같은 원천 시각 값</td><td>종료 코드 0, daily.json 기록일 <code>[1일차]</code> 1행</td></tr>
-        <tr><td>S02</td><td>S01과 같음</td><td>daily.json 내용이 한 글자도 바뀌지 않음</td></tr>
-        <tr><td>S03</td><td>S01과 같음</td><td>raw/에 1일차 파일 하나만 있음</td></tr>
-        <tr><td>S04</td><td>S01과 같음</td><td>runs.jsonl 마지막 줄 <code>success</code> · <code>skip_same_source</code> · 원천 시각</td></tr>
-        <tr><td>S05</td><td>S01과 같음</td><td>status.json <code>fresh/none</code>, 마지막 성공 기록 1일차, 안내 문구 일치</td></tr>
-        <tr><td>S06</td><td>다음 날 원천 시각이 바뀐 값</td><td>새 행 추가(1300, 1310), action <code>insert</code></td></tr>
-        <tr><td>S07</td><td>같은 KST 날짜에 같은 원천 시각 두 번</td><td>1행 유지, 마지막 수집 시각 갱신, action <code>update</code></td></tr>
-        <tr><td>S08</td><td>건너뛴 뒤 같은 날 원천이 갱신됨</td><td>그날 행 추가(1300, 1320)</td></tr>
-        <tr><td>S09</td><td>원천 시각이 1초만 다름(경계)</td><td>새 행 추가</td></tr>
-        <tr><td>S10</td><td>기존 T04 검사 실행</td><td>모두 통과</td></tr>
-      </tbody>
-    </table>
-    </div>
-  </section>
-
-  <section class="sheet" aria-labelledby="ho-h">
-    <h2 id="ho-h">인수인계</h2>
-    <p>AI B에는 저장소와 최초 요청, 그리고 "먼저 HANDOFF.md를 읽고 이어서 작업해 줘" 한 줄만 주었습니다. 문서: <a href="https://github.com/wogud98/ALEPH/blob/main/challenge/T05/HANDOFF.md">HANDOFF.md</a></p>
-    <ul class="plain">
-      <li><strong>7항목:</strong> 목표 · 현재 상태 · 실행 명령 · 통과 검사 · 남은 문제 · 다음 행동 · 건드리지 말 것 (모두 있음)</li>
-      <li><strong>같은 내용인가:</strong> A가 커밋한 문서와 B가 받은 문서의 SHA-256이 같음 <span class="mono">2fc8b2b4…6fc57</span></li>
-      <li><strong>새 폴더 재현:</strong> 새로 받은 저장소를 1d92607로 맞추고 문서의 실행 명령 2개를 실행 → <code>9/10 통과</code>(S05만 실패), T04 검사 18개 통과. 문서의 '통과 검사'와 같음</li>
-      <li><strong>누락:</strong> B가 막힌 곳은 없음. 끝난 뒤 점검에서 문서에 저장소 버전 ID가 빠진 것을 발견해 한 줄 추가함(수정 전후는 LOG.md에 기록). B는 문서의 '다음 행동 4'(기록 후 커밋)를 하지 않아 진행자가 B의 변경을 그대로 커밋함</li>
-    </ul>
-  </section>
-
-  <section class="sheet" aria-labelledby="reveal-h">
-    <h2 id="reveal-h">가림 해제</h2>
-    <details>
-      <summary>판정이 끝난 뒤 열어 보세요</summary>
+  <section class="sheet" aria-labelledby="ev-h">
+    <h2 id="ev-h">증거</h2>
+    <p class="note">작업 기록, 고정 검사 10개, 인수인계 확인 결과입니다. 제목을 누르면 펼쳐집니다.</p>
+    <details><summary>작업 기록 (순서와 시각)</summary>
+      <section class="sub" aria-labelledby="log-h">
+      <h3 id="log-h">작업 기록 (순서)</h3>
+      <div class="scroll">
+      <table>
+        <thead><tr><th>순서</th><th>사건</th><th>시각 (KST, 2026-10-11)</th><th>버전</th><th>검사</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>검사 10개·상한 고정</td><td class="num">14:16:51</td><td class="mono">56f33c6</td><td class="num fail">5/10</td></tr>
+          <tr><td>1</td><td>AI A 시작</td><td class="num">17:40:46</td><td class="mono">0be119d</td><td class="num fail">5/10</td></tr>
+          <tr><td>2</td><td>AI A 종료·인수인계</td><td class="num">17:44:17</td><td class="mono">dad1cc7</td><td class="num fail">9/10</td></tr>
+          <tr><td>3</td><td>AI B 시작</td><td class="num">17:53:52</td><td class="mono">1d92607</td><td class="num fail">9/10</td></tr>
+          <tr><td>4</td><td>AI B 종료</td><td class="num">17:55:07</td><td class="mono">a5ca262</td><td class="num pass">10/10</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="note" style="margin-top:10px">원본 기록: <a href="https://github.com/wogud98/ALEPH/blob/main/challenge/T05/LOG.md">LOG.md</a>. 1d92607은 A가 적은 추정 시작 시각을 정확한 값으로 바꾼 기록 커밋입니다(코드 변경 없음).</p>
+    </section>
+    </details>
+    <details><summary>고친 것과 고정 검사 10개</summary>
+      <section class="sub" aria-labelledby="fix-h">
+      <h3 id="fix-h">고친 것과 고정 검사</h3>
+      <p><strong>버그:</strong> 22:17 예약 수집이 GitHub 지연으로 다음 날 04:18에 돌았을 때, 원천은 아직 전날 값을 주고 있었습니다(원천 갱신 시각이 같음). 수집기는 기록일을 수집 시각으로만 정해서 이 값을 새 날짜 행으로 저장했고, 화면에 "전날 대비 변동 없음"이 잘못 나왔습니다.</p>
+      <p><strong>고침:</strong> 이번 응답의 원천 갱신 시각이 직전 기록일 행과 같고 오늘 행이 아직 없으면, 새 행을 만들지 않고 로그(<code>skip_same_source</code>)와 상태만 남깁니다.</p>
+      <p class="note">전체 조건: <a href="https://github.com/wogud98/ALEPH/blob/main/challenge/T05/TASK.md">TASK.md</a> · 검사 파일: <a href="https://github.com/wogud98/ALEPH/blob/main/challenge/T05/same-source.test.js">same-source.test.js</a> (고정 뒤 삭제·완화·기대값 변경 0건, <code>git diff 56f33c6 -- challenge/T05/same-source.test.js</code> 비어 있음)</p>
+      <div class="scroll">
+      <table>
+        <thead><tr><th>ID</th><th>입력 (가짜 원천·가짜 시계)</th><th>기대값</th></tr></thead>
+        <tbody>
+          <tr><td>S01</td><td>1일차 10:00 수집 → 다음 날 04:18에 같은 원천 시각 값</td><td>종료 코드 0, daily.json 기록일 <code>[1일차]</code> 1행</td></tr>
+          <tr><td>S02</td><td>S01과 같음</td><td>daily.json 내용이 한 글자도 바뀌지 않음</td></tr>
+          <tr><td>S03</td><td>S01과 같음</td><td>raw/에 1일차 파일 하나만 있음</td></tr>
+          <tr><td>S04</td><td>S01과 같음</td><td>runs.jsonl 마지막 줄 <code>success</code> · <code>skip_same_source</code> · 원천 시각</td></tr>
+          <tr><td>S05</td><td>S01과 같음</td><td>status.json <code>fresh/none</code>, 마지막 성공 기록 1일차, 안내 문구 일치</td></tr>
+          <tr><td>S06</td><td>다음 날 원천 시각이 바뀐 값</td><td>새 행 추가(1300, 1310), action <code>insert</code></td></tr>
+          <tr><td>S07</td><td>같은 KST 날짜에 같은 원천 시각 두 번</td><td>1행 유지, 마지막 수집 시각 갱신, action <code>update</code></td></tr>
+          <tr><td>S08</td><td>건너뛴 뒤 같은 날 원천이 갱신됨</td><td>그날 행 추가(1300, 1320)</td></tr>
+          <tr><td>S09</td><td>원천 시각이 1초만 다름(경계)</td><td>새 행 추가</td></tr>
+          <tr><td>S10</td><td>기존 T04 검사 실행</td><td>모두 통과</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+    </details>
+    <details><summary>인수인계 확인</summary>
+      <section class="sub" aria-labelledby="ho-h">
+      <h3 id="ho-h">인수인계</h3>
+      <p>AI B에는 저장소와 최초 요청, 그리고 "먼저 HANDOFF.md를 읽고 이어서 작업해 줘" 한 줄만 주었습니다. 문서: <a href="https://github.com/wogud98/ALEPH/blob/main/challenge/T05/HANDOFF.md">HANDOFF.md</a></p>
+      <ul class="plain">
+        <li><strong>7항목:</strong> 목표 · 현재 상태 · 실행 명령 · 통과 검사 · 남은 문제 · 다음 행동 · 건드리지 말 것 (모두 있음)</li>
+        <li><strong>같은 내용인가:</strong> A가 커밋한 문서와 B가 받은 문서의 SHA-256이 같음 <span class="mono">2fc8b2b4…6fc57</span></li>
+        <li><strong>새 폴더 재현:</strong> 새로 받은 저장소를 1d92607로 맞추고 문서의 실행 명령 2개를 실행 → <code>9/10 통과</code>(S05만 실패), T04 검사 18개 통과. 문서의 '통과 검사'와 같음</li>
+        <li><strong>누락:</strong> B가 막힌 곳은 없음. 끝난 뒤 점검에서 문서에 저장소 버전 ID가 빠진 것을 발견해 한 줄 추가함(수정 전후는 LOG.md에 기록). B는 문서의 '다음 행동 4'(기록 후 커밋)를 하지 않아 진행자가 B의 변경을 그대로 커밋함</li>
+      </ul>
+    </section>
+    </details>
+    <details><summary>가림 해제 (판정 뒤에 열어 보세요)</summary>
       <p style="margin-top:10px">AI A: Claude Code (Anthropic) · AI B: Codex (OpenAI). 서로 다른 서비스이며, 둘 다 같은 PC에서 Paseo로 따로 띄운 새 세션입니다.</p>
     </details>
   </section>
