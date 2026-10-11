@@ -93,22 +93,34 @@ async function run(options = {}) {
     const reading = normalize(json, fetchedAt);
 
     const rows = readJson(files.daily, []);
-    const { rows: nextRows, action, row } = upsertDaily(rows, reading);
+    // cron 지연으로 다음 KST 날짜에 돌았는데 원천이 아직 직전 기록일 값을 주면(원천 시각 같음) 새 행을 만들지 않음
+    const sameDay = rows.find((r) => r.signal_id === reading.signal_id && r.record_date === reading.record_date);
+    const previous = rows
+      .filter((r) => r.signal_id === reading.signal_id && r.record_date < reading.record_date)
+      .sort((a, b) => b.record_date.localeCompare(a.record_date))[0];
+    if (!sameDay && previous && previous.reading && previous.reading.source_time === reading.source_time) {
+      // daily.json과 raw/는 건드리지 않음
+      // TODO(T05 고칠 것 3): status.json을 fresh/none + 직전 행 record_id + 안내 문구로 갱신
+      runLog = { at: fetchedAt, outcome: 'success', action: 'skip_same_source', record_date: reading.record_date, source_time: reading.source_time, http_status: httpStatus };
+      console.log(`[건너뜀] ${reading.record_date} 원천 시각 ${reading.source_time}이 직전 기록일 ${previous.record_date}과 같음`);
+    } else {
+      const { rows: nextRows, action, row } = upsertDaily(rows, reading);
 
-    // 원자료는 받은 그대로(가공 없이) 기록일별로 보관 → 원자료·저장값·화면값 대조에 사용
-    writeAtomic(path.join(files.rawDir, `${reading.record_date}.json`), text);
-    writeAtomic(files.daily, JSON.stringify(nextRows, null, 2) + '\n');
+      // 원자료는 받은 그대로(가공 없이) 기록일별로 보관 → 원자료·저장값·화면값 대조에 사용
+      writeAtomic(path.join(files.rawDir, `${reading.record_date}.json`), text);
+      writeAtomic(files.daily, JSON.stringify(nextRows, null, 2) + '\n');
 
-    const status = {
-      status: { freshness: 'fresh', error_code: 'none' },
-      last_success_at: fetchedAt,
-      last_success_record_id: row.record_id,
-      last_run: { at: fetchedAt, outcome: 'success', error_code: 'none', http_status: httpStatus, retry_after_seconds: null, message: `일별 기록 ${action === 'insert' ? '추가' : '갱신'}` }
-    };
-    writeAtomic(files.status, JSON.stringify(status, null, 2) + '\n');
+      const status = {
+        status: { freshness: 'fresh', error_code: 'none' },
+        last_success_at: fetchedAt,
+        last_success_record_id: row.record_id,
+        last_run: { at: fetchedAt, outcome: 'success', error_code: 'none', http_status: httpStatus, retry_after_seconds: null, message: `일별 기록 ${action === 'insert' ? '추가' : '갱신'}` }
+      };
+      writeAtomic(files.status, JSON.stringify(status, null, 2) + '\n');
 
-    runLog = { at: fetchedAt, outcome: 'success', action, record_date: reading.record_date, value: reading.normalized_value, source_time: reading.source_time, http_status: httpStatus };
-    console.log(`[성공] ${reading.record_date} 1달러 = ${reading.normalized_value}원 (${action}), 출처 시각 ${reading.source_time}`);
+      runLog = { at: fetchedAt, outcome: 'success', action, record_date: reading.record_date, value: reading.normalized_value, source_time: reading.source_time, http_status: httpStatus };
+      console.log(`[성공] ${reading.record_date} 1달러 = ${reading.normalized_value}원 (${action}), 출처 시각 ${reading.source_time}`);
+    }
   } catch (err) {
     const code = err instanceof SourceError ? err.code : 'schema_error';
     const status = {
