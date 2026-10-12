@@ -32,7 +32,7 @@ before(async () => {
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
   page.on('pageerror', (e) => consoleErrors.push(e.message));
   await page.goto(S.base + '/');
-  await page.waitForSelector('#task-list .task');
+  await page.waitForSelector('#task-list .task', { state: 'attached' });
 });
 after(async () => {
   if (browser) await browser.close();
@@ -40,7 +40,14 @@ after(async () => {
 });
 
 const opts = { skip: chromium ? false : 'playwright 없음' };
-const tile = (m) => page.locator(`.tile.t-${m} .tile-num`);
+const tileNum = async (m) => Number(await page.locator(`.tile.t-${m} .tile-num`).textContent());
+const go = async (view) => {
+  await page.click(`a.step[data-view=${view}]`);
+  await page.locator(`section.view[data-view=${view}]`).waitFor();
+};
+const expand = async (card) => {
+  if (await card.locator('.task-body').isHidden()) await card.locator('.task-toggle').click();
+};
 
 test('T06-C82 첫 화면에 공개 안내가 보인다', opts, async () => {
   const text = await page.locator('#public-notice').innerText();
@@ -49,6 +56,7 @@ test('T06-C82 첫 화면에 공개 안내가 보인다', opts, async () => {
 });
 
 test('T06-C57 스크립트 모양 글자가 실행되지 않고 글자 그대로 보인다', opts, async () => {
+  await go('do');
   const title = page.locator('.task h3', { hasText: '<script>' });
   assert.equal(await title.innerText(), EVIL);
   assert.equal(await page.locator('#task-list img').count(), 0, 'img 태그가 만들어지지 않는다');
@@ -57,22 +65,24 @@ test('T06-C57 스크립트 모양 글자가 실행되지 않고 글자 그대로
 });
 
 test('T06-C21, C22 완료 버튼을 연달아 두 번 눌러도 기록 1건, 완료 수 +1', opts, async () => {
-  const before = Number(await tile('done').innerText());
+  const before = await tileNum('done');
+  await go('do');
   const card = page.locator('.task', { hasText: '첫 할 일' });
   await card.getByRole('button', { name: '완료', exact: true }).dblclick();
   await page.locator('.task.done', { hasText: '첫 할 일' }).waitFor();
   await page.waitForTimeout(300);
   const n = (await S.pool.query(`select count(*)::int n from task_completions c join tasks t on t.id = c.task_id where t.title = '첫 할 일'`)).rows[0].n;
   assert.equal(n, 1);
-  assert.equal(Number(await tile('done').innerText()), before + 1);
+  assert.equal(await tileNum('done'), before + 1);
 });
 
 test('T06-C83 집계 숫자를 누르면 근거 기록으로 갈 수 있다', opts, async () => {
-  await tile('done').click();
+  await go('see');
+  await page.locator('.tile.t-done').click();
   const ev = page.locator('#evidence');
   await ev.waitFor({ state: 'visible' });
   const link = ev.locator('a', { hasText: '첫 할 일' });
-  assert.equal(await ev.locator('ol.ev-list > li').count(), Number(await tile('done').innerText()));
+  assert.equal(await ev.locator('ol.ev-list > li').count(), await tileNum('done'));
   await link.click();
   const target = page.locator('.task.flash', { hasText: '첫 할 일' });
   await target.waitFor();
@@ -81,6 +91,7 @@ test('T06-C83 집계 숫자를 누르면 근거 기록으로 갈 수 있다', op
 });
 
 test('T06-C08 화면에서 계획을 고치면 수정 이력에 1판이 남는다', opts, async () => {
+  await go('plan');
   await page.click('#edit-plan-btn');
   await page.fill('#plan-form [name=estimated_minutes]', '420');
   await page.fill('#plan-form [name=change_reason]', '할 일이 늘어남');
@@ -93,7 +104,9 @@ test('T06-C08 화면에서 계획을 고치면 수정 이력에 1판이 남는�
 });
 
 test('T06-C23~C27 화면에서 실행 기록을 남기면 할 일에 붙고 예상 값은 그대로다', opts, async () => {
+  await go('do');
   const card = page.locator('.task', { hasText: '첫 할 일' });
+  await expand(card);
   await card.locator('.log-add summary').click();
   const day = seoulToday(0);
   await card.locator('[name=started_at]').fill(`${day}T09:00`);
@@ -105,25 +118,28 @@ test('T06-C23~C27 화면에서 실행 기록을 남기면 할 일에 붙고 예�
   assert.equal(log.actual_minutes, 90);
   assert.equal(new Date(log.started_at).toISOString(), new Date(`${day}T09:00:00+09:00`).toISOString());
   assert.equal(log.estimated_minutes, 60, '할 일의 예상 시간은 그대로');
-  assert.equal(await tile('blocked').innerText(), '1');
-  assert.equal(await tile('actual').innerText(), '90');
+  assert.equal(await tileNum('blocked'), 1);
+  assert.equal(await tileNum('actual'), 90);
 });
 
 test('T06-C35 새로고침 뒤에도 같은 값이 보인다', opts, async () => {
   const snap = async () => ({
-    tiles: await page.locator('#tiles').innerText(),
-    tasks: await page.locator('#task-list').innerText(),
-    plan: await page.locator('#plan-view').innerText(),
+    tiles: await page.locator('#tiles').textContent(),
+    tasks: await page.locator('#task-list').textContent(),
+    plan: await page.locator('#plan-view').textContent(),
   });
   const a = await snap();
   await page.reload();
-  await page.waitForSelector('#task-list .task');
-  await page.waitForSelector('#tiles .tile');
+  await page.waitForSelector('#task-list .task', { state: 'attached' });
+  await page.waitForSelector('#tiles .tile', { state: 'attached' });
+  await page.waitForTimeout(300);
   const b = await snap();
   assert.deepEqual(b, a);
 });
 
 test('T06-C33 돌아보기의 고칠 점이 다음 계획으로 넘어간다', opts, async () => {
+  await go('see');
+  await page.click('#retro-open');
   await page.fill('#retro-form [name=improvement]', '테스트 준비 시간을 따로 잡는다');
   await page.click('#retro-form [type=submit]');
   const btn = page.getByRole('button', { name: '이 고칠 점으로 다음 계획 만들기' });
@@ -135,7 +151,7 @@ test('T06-C33 돌아보기의 고칠 점이 다음 계획으로 넘어간다', o
   const p = (await S.pool.query(`select * from plans where title = '다음 주 계획'`)).rows[0];
   assert.equal(p.carried_improvement, '테스트 준비 시간을 따로 잡는다');
   await page.selectOption('#plan-select', String(planId));
-  await page.locator('#retro-list a', { hasText: `계획 #${p.id}` }).waitFor();
+  await page.locator('#retro-list a', { hasText: `계획 #${p.id}` }).waitFor({ state: 'attached' });
 });
 
 test('T06-C36 내보내기 버튼으로 JSON 파일 하나를 받는다', opts, async () => {
