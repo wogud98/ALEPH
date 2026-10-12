@@ -1,0 +1,21 @@
+{
+  "name": "aleph-t06-pds-diary",
+  "version": "1.0.0",
+  "private": true,
+  "description": "플랜두씨 다이어리: 계획 → 실제로 한 일 → 돌아보기 (Node + PostgreSQL)",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/api.test.js",
+    "test:e2e": "node --test test/e2e.test.js",
+    "check:secrets": "node scripts/check-secrets.js",
+    "check:live": "node scripts/check-live.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}
