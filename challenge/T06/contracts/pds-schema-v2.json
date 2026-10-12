@@ -1,0 +1,125 @@
+{
+  "name": "pds-schema",
+  "version": 2,
+  "database": "PostgreSQL 16",
+  "source": "db/schema.sql",
+  "rules": {
+    "dates": "기간·마감일은 서울(Asia/Seoul) 달력 날짜를 date(YYYY-MM-DD)로 저장하고 그대로 돌려준다. 시간대 변환을 하지 않는다.",
+    "timestamps": "시작·끝·완료·작성 시각은 timestamptz로 저장한다. API 입력은 시간대가 붙은 ISO 8601만 받고(예: 2026-10-12T09:00:00+09:00), 출력은 UTC ISO 8601(…Z)이다. 화면은 Asia/Seoul로 바꿔 보여 준다.",
+    "today": "지연 판단의 '오늘'은 서버 DB가 (now() at time zone 'Asia/Seoul')::date 로 정한다.",
+    "durations": "예상 시간·실제 시간은 모두 정수 분(minutes)으로 저장·응답한다. 차이 = 실제 - 예상 (분).",
+    "priority": "1 = 높음, 2 = 보통, 3 = 낮음. 숫자가 작을수록 먼저.",
+    "ids": "모든 ID는 DB가 만드는 정수(bigint identity)이고 바뀌지 않는다. 계획을 고쳐도 계획 ID는 그대로다.",
+    "soft_delete": "할 일을 지우면 tasks.deleted_at에 시각을 적는다. 지운 할 일은 목록·돌아보기 집계에서 빠지고, 실행 기록은 DB에 남는다."
+  },
+  "tables": {
+    "plans": {
+      "description": "계획의 지금 값(가장 최근 판). 처음 값과 고치기 전 값은 plan_revisions에 남는다.",
+      "columns": {
+        "id": { "type": "bigint", "key": "primary" },
+        "current_revision": { "type": "integer", "note": "지금 몇 판인지" },
+        "title": { "type": "text" },
+        "start_date": { "type": "date" },
+        "end_date": { "type": "date", "check": "end_date >= start_date" },
+        "priority": { "type": "smallint", "check": "1|2|3" },
+        "success_criteria": { "type": "text" },
+        "estimated_minutes": { "type": "integer", "unit": "minutes" },
+        "carried_from_retro_id": { "type": "bigint", "nullable": true, "references": "retrospectives.id", "unique": true },
+        "carried_improvement": { "type": "text", "nullable": true, "note": "돌아보기에서 넘어온 고칠 점 한 줄" },
+        "created_at": { "type": "timestamptz" },
+        "updated_at": { "type": "timestamptz" }
+      }
+    },
+    "plan_revisions": {
+      "description": "계획의 모든 판. 1판 = 처음 세운 계획. 한 번 들어간 줄은 트리거가 UPDATE를 막는다.",
+      "columns": {
+        "id": { "type": "bigint", "key": "primary" },
+        "plan_id": { "type": "bigint", "references": "plans.id" },
+        "revision_no": { "type": "integer", "unique_with": "plan_id" },
+        "title": { "type": "text" },
+        "start_date": { "type": "date" },
+        "end_date": { "type": "date" },
+        "priority": { "type": "smallint" },
+        "success_criteria": { "type": "text" },
+        "estimated_minutes": { "type": "integer", "unit": "minutes" },
+        "change_reason": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz" }
+      }
+    },
+    "tasks": {
+      "description": "계획에 딸린 할 일.",
+      "columns": {
+        "id": { "type": "bigint", "key": "primary" },
+        "plan_id": { "type": "bigint", "references": "plans.id" },
+        "title": { "type": "text" },
+        "description": { "type": "text" },
+        "due_date": { "type": "date", "nullable": true },
+        "priority": { "type": "smallint", "check": "1|2|3" },
+        "tags": { "type": "text[]" },
+        "estimated_minutes": { "type": "integer", "unit": "minutes" },
+        "status": { "type": "text", "check": "todo|done" },
+        "completed_at": { "type": "timestamptz", "nullable": true, "check": "status = 'done' 일 때만 값이 있다" },
+        "deleted_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz" },
+        "updated_at": { "type": "timestamptz" }
+      }
+    },
+    "task_completions": {
+      "description": "완료 기록. 같은 할 일에 살아 있는 완료(undone_at IS NULL)는 부분 유일 색인 task_completions_one_active로 1건만 허용한다. 같은 idempotency_key는 한 번만 처리한다.",
+      "columns": {
+        "id": { "type": "bigint", "key": "primary" },
+        "task_id": { "type": "bigint", "references": "tasks.id" },
+        "idempotency_key": { "type": "text", "unique": true },
+        "completed_at": { "type": "timestamptz" },
+        "undone_at": { "type": "timestamptz", "nullable": true, "note": "진행 중으로 되돌린 시각" }
+      }
+    },
+    "work_logs": {
+      "description": "실행 기록(실제로 한 일). 계획·할 일의 값을 바꾸지 않고 따로 쌓는다.",
+      "columns": {
+        "id": { "type": "bigint", "key": "primary" },
+        "task_id": { "type": "bigint", "references": "tasks.id" },
+        "started_at": { "type": "timestamptz" },
+        "ended_at": { "type": "timestamptz", "check": "ended_at >= started_at" },
+        "actual_minutes": { "type": "integer", "unit": "minutes", "check": "0 <= actual_minutes <= ceil((ended_at - started_at) 분)" },
+        "blocked_reason": { "type": "text", "note": "빈 글자면 막힘 없음" },
+        "note": { "type": "text" },
+        "idempotency_key": { "type": "text", "unique": true },
+        "created_at": { "type": "timestamptz" }
+      }
+    },
+    "retrospectives": {
+      "description": "돌아보기. 저장 시점의 집계를 snapshot(jsonb)으로 남기고, 다음 계획으로 넘길 고칠 점 한 줄을 담는다.",
+      "columns": {
+        "id": { "type": "bigint", "key": "primary" },
+        "plan_id": { "type": "bigint", "references": "plans.id" },
+        "period_from": { "type": "date", "nullable": true },
+        "period_to": { "type": "date", "nullable": true },
+        "snapshot": { "type": "jsonb" },
+        "went_well": { "type": "text" },
+        "went_wrong": { "type": "text" },
+        "improvement": { "type": "text" },
+        "created_at": { "type": "timestamptz" }
+      }
+    }
+  },
+  "relations": [
+    "plans 1 ─ N plan_revisions (plan_id)",
+    "plans 1 ─ N tasks (plan_id)",
+    "tasks 1 ─ N task_completions (task_id), 살아 있는 완료는 최대 1",
+    "tasks 1 ─ N work_logs (task_id)",
+    "plans 1 ─ N retrospectives (plan_id)",
+    "retrospectives 1 ─ 0..1 plans (plans.carried_from_retro_id): 고칠 점이 넘어간 다음 계획"
+  ],
+  "review_metrics": {
+    "target": "plan_id가 같고 deleted_at IS NULL인 할 일. 기간(from, to)을 주면 due_date가 그 안에 있는 할 일만.",
+    "planned": "count(target)",
+    "done": "count(target where status = 'done')",
+    "delayed": "count(target where status <> 'done' and due_date < 서울 오늘)",
+    "blocked": "count(target where 실행 기록 중 btrim(blocked_reason) <> '' 인 것이 1건 이상)",
+    "estimated_minutes": "sum(target.estimated_minutes), 없으면 0",
+    "actual_minutes": "sum(target에 붙은 work_logs.actual_minutes), 없으면 0",
+    "diff_minutes": "actual_minutes - estimated_minutes",
+    "evidence": "GET /api/plans/{id}/review/evidence?metric=… 는 위와 같은 조건으로 근거 할 일·실행 기록 목록을 돌려준다."
+  }
+}
