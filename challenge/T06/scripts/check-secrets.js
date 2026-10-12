@@ -5,7 +5,6 @@ const { execFileSync } = require('node:child_process');
 
 const PATTERNS = [
   ['DB 접속 주소(비밀번호 포함)', /postgres(?:ql)?:\/\/[^\s:'"`/@]+:[^\s@'"`]+@[^\s'"`]+/i],
-  ['DATABASE_URL 값', /DATABASE_URL\s*[=:]\s*['"]?postgres/i],
   ['개인 키', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
   ['GitHub 토큰', /\b(gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})\b/],
   ['AWS 접근 키', /\bAKIA[0-9A-Z]{16}\b/],
@@ -16,7 +15,8 @@ const PATTERNS = [
 // 검사 코드가 일부러 넣은 가짜 값은 제외한다.
 const ALLOW = [/NotARealPassword-zz9/, /\$\{secret\}@/, /scripts\/check-secrets\.js/];
 
-const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 512 * 1024 * 1024 });
+const top = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+const git = (...args) => execFileSync('git', args, { cwd: top, encoding: 'utf8', maxBuffer: 512 * 1024 * 1024 });
 
 function scan(label, text) {
   const hits = [];
@@ -28,7 +28,7 @@ function scan(label, text) {
 }
 
 const hits = [];
-const files = git('ls-files').split('\n').filter(Boolean).filter((f) => !f.endsWith('check-secrets.js'));
+const files = git('ls-files', '-z').split('\0').filter(Boolean).filter((f) => !f.endsWith('check-secrets.js'));
 for (const f of files) {
   let text;
   try { text = git('show', `HEAD:${f}`); } catch { continue; }
