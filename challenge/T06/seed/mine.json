@@ -1,0 +1,122 @@
+{
+  "about": "재리의 실제 운동 계획과 기록 (2026-10-12 재리가 알려 준 내용). 실행 기록의 시각은 '평일 20:00쯤 시작, 1시간'이라는 평소 습관에 맞춘 대략값이다. DB가 비어 있을 때 한 번만 들어간다.",
+  "plans": [
+    {
+      "plan": {
+        "title": "운동 루틴: 웨이트 주 3회 + 러닝 주 1회 (2주)",
+        "start_date": "2026-10-05",
+        "end_date": "2026-10-18",
+        "priority": 1,
+        "success_criteria": "웨이트 트레이닝 주 3회, 회당 1시간 이상 (가슴·삼두 / 등·이두 / 하체·어깨, 복근은 가능한 날마다). 러닝 주 1회 20분 이상, 3km 이상, 1km당 5분 이내.",
+        "estimated_minutes": 400
+      },
+      "tasks": [
+        {
+          "title": "1주차 웨이트: 하체·어깨",
+          "description": "하체, 어깨 + 가능하면 복근. 평일 20:00쯤 시작.",
+          "due_date": "2026-10-05",
+          "priority": 1,
+          "tags": ["웨이트", "하체", "어깨", "1주차"],
+          "estimated_minutes": 60,
+          "logs": [
+            {
+              "started_at": "2026-10-05T20:00:00+09:00",
+              "ended_at": "2026-10-05T20:00:00+09:00",
+              "actual_minutes": 0,
+              "blocked_reason": "서울 방문(10/3~10/5)으로 미실시",
+              "note": "다음 날로 미룸"
+            },
+            {
+              "started_at": "2026-10-06T20:00:00+09:00",
+              "ended_at": "2026-10-06T21:00:00+09:00",
+              "actual_minutes": 60,
+              "note": "하체·어깨 실시 (시각은 평소 습관 기준 대략)"
+            }
+          ],
+          "completed_at": "2026-10-06T21:00:00+09:00"
+        },
+        {
+          "title": "1주차 웨이트: 가슴·삼두",
+          "description": "가슴, 삼두 + 가능하면 복근.",
+          "due_date": "2026-10-07",
+          "priority": 1,
+          "tags": ["웨이트", "가슴", "삼두", "1주차"],
+          "estimated_minutes": 60,
+          "logs": [
+            {
+              "started_at": "2026-10-07T20:00:00+09:00",
+              "ended_at": "2026-10-07T21:00:00+09:00",
+              "actual_minutes": 60,
+              "note": "가슴·삼두 실시 (시각은 평소 습관 기준 대략)"
+            }
+          ],
+          "completed_at": "2026-10-07T21:00:00+09:00"
+        },
+        {
+          "title": "1주차 웨이트: 등·이두",
+          "description": "등, 이두 + 가능하면 복근.",
+          "due_date": "2026-10-09",
+          "priority": 1,
+          "tags": ["웨이트", "등", "이두", "1주차"],
+          "estimated_minutes": 60,
+          "logs": [
+            {
+              "started_at": "2026-10-08T20:00:00+09:00",
+              "ended_at": "2026-10-08T20:00:00+09:00",
+              "actual_minutes": 0,
+              "blocked_reason": "서울 방문(10/8~10/10)으로 미실시"
+            }
+          ]
+        },
+        {
+          "title": "1주차 러닝: 3km 이상, 1km당 5분 이내",
+          "description": "20분 이상. 주말 일정 없으면 오전에.",
+          "due_date": "2026-10-11",
+          "priority": 2,
+          "tags": ["러닝", "1주차"],
+          "estimated_minutes": 20,
+          "logs": [
+            {
+              "started_at": "2026-10-11T10:00:00+09:00",
+              "ended_at": "2026-10-11T10:00:00+09:00",
+              "actual_minutes": 0,
+              "blocked_reason": "본가 방문으로 미실시"
+            }
+          ]
+        },
+        {
+          "title": "2주차 웨이트: 하체·어깨",
+          "description": "오늘(10/12) 예정. 하체, 어깨 + 가능하면 복근.",
+          "due_date": "2026-10-12",
+          "priority": 1,
+          "tags": ["웨이트", "하체", "어깨", "2주차"],
+          "estimated_minutes": 60
+        },
+        {
+          "title": "2주차 웨이트: 가슴·삼두",
+          "description": "가슴, 삼두 + 가능하면 복근.",
+          "due_date": "2026-10-14",
+          "priority": 1,
+          "tags": ["웨이트", "가슴", "삼두", "2주차"],
+          "estimated_minutes": 60
+        },
+        {
+          "title": "2주차 웨이트: 등·이두",
+          "description": "등, 이두 + 가능하면 복근.",
+          "due_date": "2026-10-16",
+          "priority": 1,
+          "tags": ["웨이트", "등", "이두", "2주차"],
+          "estimated_minutes": 60
+        },
+        {
+          "title": "2주차 러닝: 3km 이상, 1km당 5분 이내",
+          "description": "20분 이상. 주말 일정 없으면 오전에.",
+          "due_date": "2026-10-18",
+          "priority": 2,
+          "tags": ["러닝", "2주차"],
+          "estimated_minutes": 20
+        }
+      ]
+    }
+  ]
+}

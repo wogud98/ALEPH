@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/api.test.js",
+    "test": "node --test --test-concurrency=1 test/api.test.js test/seed.test.js",
     "test:e2e": "node --test test/e2e.test.js",
     "check:secrets": "node scripts/check-secrets.js",
     "check:live": "node scripts/check-live.js"

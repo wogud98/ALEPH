@@ -9,6 +9,7 @@
 
 | 경로 | 역할 |
 |---|---|
+| `seed/mine.json` | 내 실제 운동 계획·할 일·실행 기록 (DB가 비어 있을 때 한 번만 들어감) |
 | `server.js` | 시작점. DB 스키마 적용 → (DB가 비어 있으면) `seed/mine.json` 넣기 → HTTP 서버 |
 | `src/service.js` | 계획·할 일·실행 기록·돌아보기 규칙과 SQL. 집계 숫자와 근거 목록이 같은 조건을 쓴다 |
 | `src/app.js` | API 경로, 보안 헤더(CSP), 오류 응답(DB 오류 원문은 숨김) |
@@ -59,6 +60,6 @@ npm run check:live -- https://<배포 주소>
 
 ## 점검 결과 (로컬 PostgreSQL 16 + Chromium)
 
-- `npm test`: 32개 통과 (C04~C36, C57, C58, C82, C83 및 계약 파일 일치)
+- `npm test`: 33개 통과 (C04~C36, C57, C58, C78~C83 및 계약 파일 일치)
 - `npm run test:e2e`: 10개 통과 (공개 안내, 스크립트 글자, 완료 두 번 누르기, 숫자→근거 이동, 계획 수정 이력, 실행 기록, 새로고침, 고칠 점 넘기기, 내보내기, 콘솔 오류 0)
 - `npm run check:secrets`: 비밀값 원문 없음
