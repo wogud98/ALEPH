@@ -2,7 +2,7 @@
 
 계획(Plan) → 실제로 한 일(Do) → 돌아보기(See)가 서버의 PostgreSQL로 이어지는 다이어리입니다. 로그인이 없어서 **링크를 아는 사람은 누구나 볼 수 있습니다.** 남이 봐도 괜찮은 내용만 넣습니다(잠그는 일은 T07).
 
-- 결과물: `https://aleph-t06-pds.onrender.com` (Render 배포 뒤 실제 주소로 바꾸기)
+- 결과물: https://aleph-t06-pds.onrender.com
 - 소스: https://github.com/wogud98/ALEPH/tree/main/challenge/T06
 
 ## 구성

@@ -16,7 +16,8 @@ const STATIC = {
 // 인라인 스크립트·외부 스크립트를 막아, 저장된 글자가 혹시 HTML로 들어가도 실행되지 않게 한 겹 더 막는다.
 const SECURITY_HEADERS = {
   'Content-Security-Policy':
-    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; " +
+    "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; " +
+    "font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; " +
     "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
