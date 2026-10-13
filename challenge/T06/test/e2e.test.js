@@ -162,6 +162,27 @@ test('T06-C36 내보내기 버튼으로 JSON 파일 하나를 받는다', opts, 
   assert.ok(data.plans.length >= 2 && data.tasks.length >= 2 && data.work_logs.length >= 1 && data.retrospectives.length >= 1);
 });
 
+test('편의: 오늘 할 일 표시, 실행 기록 기본값은 "방금 끝냄", 저장하며 완료까지 한 번에', opts, async () => {
+  await S.call('POST', `/api/plans/${planId}/tasks`, { title: '오늘 운동', due_date: seoulToday(0), estimated_minutes: 45 });
+  await page.reload();
+  await go('do');
+  const card = page.locator('.task', { hasText: '오늘 운동' });
+  await card.waitFor();
+  assert.equal(await card.locator('.meta .today').innerText(), '오늘');
+  await expand(card);
+  await card.locator('.log-add summary').click();
+  const box = card.locator('[name=complete]');
+  assert.ok(await box.isChecked(), '완료 표시가 기본으로 켜져 있다');
+  await card.getByRole('button', { name: '실행 기록 저장' }).click();
+  await page.locator('.task.done', { hasText: '오늘 운동' }).waitFor();
+  const r = (await S.pool.query(`select w.actual_minutes,
+      (select count(*)::int from task_completions c where c.task_id = t.id) n
+    from work_logs w join tasks t on t.id = w.task_id where t.title = '오늘 운동'`)).rows;
+  assert.equal(r.length, 1);
+  assert.equal(r[0].actual_minutes, 45, '시작 기본값이 끝 - 예상 시간');
+  assert.equal(r[0].n, 1);
+});
+
 test('콘솔 오류가 없다', opts, async () => {
   assert.deepEqual(consoleErrors, []);
 });
