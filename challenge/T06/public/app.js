@@ -93,6 +93,8 @@ const seoulTime = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hou
 function fmtRange(a, b) {
   return `${fmtTime(a)} ~ ${seoulTime.format(new Date(b))}`;
 }
+const seoulYmd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
+const seoulToday = () => seoulYmd.format(new Date());
 function fmtDate(d) {
   if (!d) return '';
   const [, m, day] = d.split('-');
@@ -365,8 +367,10 @@ function renderTask(t) {
     check.disabled = true;
     setTimeout(() => { check.disabled = false; }, until - Date.now());
   }
+  const today = !done && t.due_date === seoulToday();
   const meta = [
     t.due_date ? el('span', { class: t.overdue ? 'late' : undefined, text: `${fmtDate(t.due_date)}${t.overdue ? ' 지연' : ''}` }) : el('span', { text: '마감 없음' }),
+    today ? el('span', { class: 'today', text: '오늘' }) : null,
     el('span', { class: `prio p${t.priority}`, text: PRIORITY[t.priority] }),
     el('span', { text: `예상 ${hm(t.estimated_minutes)}` }),
     t.logs.length ? el('span', { text: `실제 ${hm(actual)}` }) : null,
@@ -393,7 +397,7 @@ function renderTask(t) {
       el('button', { type: 'button', class: 'btn ghost small', onclick: () => openTaskForm(t), text: '고치기' }),
       el('button', { type: 'button', class: 'btn ghost small danger', onclick: (e) => deleteTask(t, e.currentTarget), text: '지우기' })));
 
-  return el('li', { class: `task${done ? ' done' : ''}${t.overdue ? ' overdue' : ''}${open ? ' open' : ''}`, id: `task-${t.id}`, tabindex: '-1' },
+  return el('li', { class: `task${done ? ' done' : ''}${t.overdue ? ' overdue' : ''}${today ? ' due-today' : ''}${open ? ' open' : ''}`, id: `task-${t.id}`, tabindex: '-1' },
     el('div', { class: 'task-row' }, check, toggle), body);
 }
 
@@ -422,15 +426,24 @@ function renderLog(l) {
 
 function renderLogForm(t) {
   const key = newKey();
-  const now = toSeoulInput(new Date().toISOString());
+  // 기본값은 "방금 끝냄": 끝 = 지금, 시작 = 지금 - 예상 시간(없으면 60분). 바로 저장해도 실제 시간이 맞게 들어간다.
+  const nowMs = Date.now();
+  const now = toSeoulInput(new Date(nowMs).toISOString());
+  const before = toSeoulInput(new Date(nowMs - (t.estimated_minutes || 60) * 60000).toISOString());
+  const doneBox = t.status === 'done' ? null : el('input', { name: 'complete', type: 'checkbox', checked: true });
   const form = el('form', { class: 'form log-form', dataset: { key } },
     el('div', { class: 'two' },
-      el('label', {}, '시작 (서울)', el('input', { name: 'started_at', type: 'datetime-local', required: true, value: now })),
+      el('label', {}, '시작 (서울)', el('input', { name: 'started_at', type: 'datetime-local', required: true, value: before })),
       el('label', {}, '끝 (서울)', el('input', { name: 'ended_at', type: 'datetime-local', required: true, value: now }))),
     el('div', { class: 'two' },
       el('label', {}, '실제 걸린 시간(분)', el('input', { name: 'actual_minutes', type: 'number', min: 0, step: 1, placeholder: '비우면 끝-시작' })),
-      el('label', {}, '막혔던 이유', el('input', { name: 'blocked_reason', maxlength: 1000, placeholder: '없으면 비움' }))),
+      el('label', {}, '막혔던 이유', el('input', {
+        name: 'blocked_reason', maxlength: 1000, placeholder: '없으면 비움',
+        // 막힌 기록(못 한 날)은 보통 완료가 아니므로 완료 표시를 꺼 둔다
+        oninput: (e) => { if (doneBox && e.target.value.trim()) doneBox.checked = false; },
+      }))),
     el('label', {}, '메모', el('input', { name: 'note', maxlength: 1000 })),
+    doneBox ? el('label', { class: 'inline-check' }, doneBox, '저장하면서 이 할 일을 완료로 표시') : null,
     el('p', { class: 'hint', text: '계획과 할 일의 예상 값은 바뀌지 않고, 기록만 따로 쌓입니다.' }),
     el('div', { class: 'actions' }, el('button', { type: 'submit', class: 'btn primary small', text: '실행 기록 저장' })));
   form.addEventListener('submit', (e) => addLog(e, t));
@@ -540,7 +553,13 @@ async function addLog(e, t) {
   busy(btn, true);
   try {
     const r = await api('POST', `/api/tasks/${t.id}/logs`, body);
-    say(r.duplicate ? '이미 저장된 기록입니다 (중복 저장 없음).' : `실행 기록 #${r.log.id}을(를) 남겼습니다.`);
+    let msg = r.duplicate ? '이미 저장된 기록입니다 (중복 저장 없음).' : `실행 기록 #${r.log.id}을(를) 남겼습니다.`;
+    if (form.elements.complete?.checked) {
+      // 키는 기록 키에서 만들어, 두 번 눌러도 한 번만 완료된다.
+      await api('POST', `/api/tasks/${t.id}/complete`, { idempotency_key: `${form.dataset.key}c` });
+      msg += ' 할 일도 완료로 표시했습니다.';
+    }
+    say(msg);
     await refreshDoSee();
   } catch (err) {
     fail(err);
