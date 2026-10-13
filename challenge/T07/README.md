@@ -2,7 +2,7 @@
 
 T06 다이어리(`challenge/T06`, 배포 https://aleph-t06-pds.onrender.com, 이어 붙인 T06 커밋 `4b1fa1a`)에 가입·로그인·로그아웃과 "주인 확인"을 붙인 판입니다. 첫 화면은 로그인 화면이고, 계획·할 일·실행 기록·돌아보기·5일 기록은 로그인한 본인에게만 나옵니다.
 
-- 결과물: https://aleph-t07-pds.onrender.com (Render에서 Blueprint를 적용한 뒤 생김)
+- 결과물: https://aleph-07-pds.onrender.com
 - 소스: https://github.com/wogud98/ALEPH/tree/2e23c972c399c8b187c54433ddc5bf7c3049aa13/challenge/T07
 
 ## 무엇으로 붙였나
