@@ -103,6 +103,21 @@ test('T06-C08 화면에서 계획을 고치면 수정 이력에 1판이 남는�
   assert.match(rows[1], /420분[\s\S]*할 일이 늘어남/);
 });
 
+test('계획 기간을 줄이면 기간 밖 할 일에 표시가 붙고, 할 일은 그대로 남는다', opts, async () => {
+  const before = await page.locator('#task-list .task').count();
+  await go('plan');
+  await page.click('#edit-plan-btn');
+  await page.fill('#plan-form [name=end_date]', seoulToday(1));
+  await page.click('#plan-form [type=submit]');
+  await page.locator('#history-table tbody tr').nth(2).waitFor();
+  await go('do');
+  const evil = page.locator('.task', { hasText: '<script>' });
+  await evil.locator('.outside').waitFor();
+  assert.equal(await page.locator('#task-list .task').count(), before, '할 일은 지워지지 않는다');
+  assert.match(await page.locator('#task-count').textContent(), /계획 기간 밖 1개/);
+  assert.equal(await page.locator('.task', { hasText: '첫 할 일' }).locator('.outside').count(), 0);
+});
+
 test('T06-C23~C27 화면에서 실행 기록을 남기면 할 일에 붙고 예상 값은 그대로다', opts, async () => {
   await go('do');
   const card = page.locator('.task', { hasText: '첫 할 일' });

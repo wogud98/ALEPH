@@ -340,12 +340,24 @@ function renderTagOptions() {
 function renderTasks() {
   const list = $('#task-list');
   const filtered = state.tasks.length !== state.allTasks.length;
-  $('#task-count').textContent = filtered ? `${state.allTasks.length}개 중 ${state.tasks.length}개가 조건에 맞습니다` : `할 일 ${state.allTasks.length}개`;
+  const p = state.plan;
+  const outside = state.allTasks.filter(outOfPlan).length;
+  $('#task-count').textContent = [
+    `계획 기간 ${fmtDate(p.start_date)}~${fmtDate(p.end_date)}`,
+    filtered ? `${state.allTasks.length}개 중 ${state.tasks.length}개가 조건에 맞음` : `할 일 ${state.allTasks.length}개`,
+    outside ? `계획 기간 밖 ${outside}개` : null,
+  ].filter(Boolean).join(' · ');
   if (!state.tasks.length) {
     list.replaceChildren(el('li', { class: 'empty', text: state.allTasks.length ? '조건에 맞는 할 일이 없습니다.' : '아직 할 일이 없습니다. "+ 할 일"로 넣어 보세요.' }));
     return;
   }
   list.replaceChildren(...state.tasks.map(renderTask));
+}
+
+// 계획을 고쳐 기간이 바뀌어도 할 일은 그대로 두므로, 마감일이 기간을 벗어난 할 일은 표시만 해 준다.
+function outOfPlan(t) {
+  const p = state.plan;
+  return Boolean(p && t.due_date && (t.due_date < p.start_date || t.due_date > p.end_date));
 }
 
 function renderTask(t) {
@@ -367,6 +379,7 @@ function renderTask(t) {
   }
   const meta = [
     t.due_date ? el('span', { class: t.overdue ? 'late' : undefined, text: `${fmtDate(t.due_date)}${t.overdue ? ' 지연' : ''}` }) : el('span', { text: '마감 없음' }),
+    outOfPlan(t) ? el('span', { class: 'outside', title: '마감일이 지금 계획 기간 밖입니다. 지우거나 마감일을 옮길 수 있습니다.', text: '계획 기간 밖' }) : null,
     el('span', { class: `prio p${t.priority}`, text: PRIORITY[t.priority] }),
     el('span', { text: `예상 ${hm(t.estimated_minutes)}` }),
     t.logs.length ? el('span', { text: `실제 ${hm(actual)}` }) : null,
