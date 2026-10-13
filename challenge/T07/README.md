@@ -1,0 +1,67 @@
+# T07 플랜두씨 다이어리 2 — 로그인을 붙여 내 기록을 나만 보게
+
+T06 다이어리(`challenge/T06`, 배포 https://aleph-t06-pds.onrender.com, 이어 붙인 T06 커밋 `4b1fa1a`)에 가입·로그인·로그아웃과 "주인 확인"을 붙인 판입니다. 첫 화면은 로그인 화면이고, 계획·할 일·실행 기록·돌아보기·5일 기록은 로그인한 본인에게만 나옵니다.
+
+- 결과물: https://aleph-t07-pds.onrender.com (Render에서 Blueprint를 적용한 뒤 생김)
+- 소스: https://github.com/wogud98/ALEPH/tree/main/challenge/T07
+
+## 무엇으로 붙였나
+
+| 부분 | 고른 것 | 버전 |
+|---|---|---|
+| 비밀번호 해시 | 라이브러리 [`argon2`](https://github.com/ranisalt/node-argon2) (argon2id, 메모리 64MiB·반복 3·병렬 4, 소금값 자동) | 0.45.1 |
+| 로그인 유지 | 직접 구현: 서버 세션 표(`sessions`) + HttpOnly 쿠키 `pds_sid` (토큰 = `crypto.randomBytes(32)`, DB에는 SHA-256만) | Node 22 `node:crypto` |
+| 저장소 | T06과 같은 Render PostgreSQL, 표는 `t07` 스키마에 따로 | PostgreSQL 16, `pg` 8 |
+
+검토했지만 고르지 않은 것: 인증 서비스(Supabase Auth·Auth0), JWT, Passport/express-session. 이유는 설명서 ②에 적습니다.
+
+## 바뀐 곳
+
+| 경로 | 바뀐 것 |
+|---|---|
+| `src/auth.js` (새 파일) | 가입·로그인·로그아웃·비밀번호 변경·계정 삭제, 세션 만들기/찾기/끊기, 로그인 실패 제한 |
+| `src/app.js` | `/`·`/app` 앞에서 세션 확인(없으면 로그인 화면), `/api/auth/*`, 그 밖의 `/api/*`는 세션 없으면 401, 모든 API에 세션의 `user.id`를 넘김, 다른 사이트 Origin 거절 |
+| `src/service.js` | 모든 조회·수정·삭제 SQL에 `owner_id = 로그인한 사람` 조건 (남의 것은 404) |
+| `src/experiment.js` (새 파일) | 5일 기록: 질문·지표·단위·규칙, 날짜별 값, 2일차 뒤·3일차 앞 규칙 변경 한 번, 합계·평균 |
+| `src/import-t06.js` (새 파일) | T06(`public` 스키마) 자료를 `T06_OWNER_USERNAME` 계정으로 한 번만 옮김 |
+| `src/db.js` | 접속마다 `search_path=t07`, 시작할 때 `create schema t07` |
+| `db/schema.sql` | `users`, `sessions`, `plans.owner_id`, `t06_imports`, `experiments`, `experiment_days`, `experiment_rule_changes` |
+| `public/login.html`, `public/login.js` (새 파일) | 로그인·가입 화면 |
+| `public/index.html`, `public/app.js` | 아이디·로그아웃·계정(비밀번호 바꾸기, 계정 지우기), "Ⅳ 5일 기록" 탭, 401이면 로그인 화면으로 |
+| `scripts/evidence.js` (새 파일) | 실제 서버에 요청을 보내 "막히는 장면" 기록(Markdown)을 만듦. 비밀번호·세션 값은 가림 |
+| `seed/`, `src/seed.js` | 뺐음 (T06 자료는 `import-t06.js`로 옮김) |
+
+## 실행
+
+```
+npm ci
+DATABASE_URL=postgres://... npm start                           # http://localhost:3000
+TEST_DATABASE_URL=postgres://.../빈_검사용_DB npm test            # 검사용 DB의 t07·public 스키마를 지우니 운영 DB 금지
+TEST_DATABASE_URL=... PLAYWRIGHT_MODULE=playwright npm run test:e2e
+npm run check:secrets
+npm run check:live -- https://<배포 주소>
+node scripts/evidence.js https://<배포 주소> > evidence.md       # DATABASE_URL을 주면 DB의 해시도 적음
+```
+
+환경 변수: `DATABASE_URL`(필수), `DB_SCHEMA`(기본 `t07`), `COOKIE_SECURE=1`(https에서 쿠키에 Secure), `T06_OWNER_USERNAME`(T06 자료를 받을 아이디). 서명용 비밀키는 쓰지 않습니다.
+
+## 배포 (Render)
+
+1. 이 브랜치가 `main`에 합쳐지면 Render의 Blueprint(`render.yaml`)에 `aleph-t07-pds` 웹 서비스가 추가됩니다. Blueprint 화면에서 동기화(Sync)하고, `T06_OWNER_USERNAME`에 내가 쓸 아이디를 넣습니다.
+2. T07은 T06과 같은 무료 PostgreSQL(`aleph-t06-db`)을 쓰고 표는 `t07` 스키마에 둡니다. T06 서버는 `public` 스키마만 보므로 T07 자료를 읽을 수 없습니다.
+3. 결과물 주소에서 `T06_OWNER_USERNAME`과 같은 아이디로 가입하면, 그 순간 T06 자료가 이 계정으로 한 번 옮겨집니다 (화면 위에 "T06 다이어리 자료를 이 계정으로 옮겨 왔습니다"가 보임).
+
+무료 요금제 주의: 웹 서비스는 15분 동안 접속이 없으면 잠들어 첫 접속이 1분쯤 걸립니다. 무료 PostgreSQL은 만든 날부터 30일 뒤 만료되므로 그 전에 "내보내기"로 파일을 받아 둡니다.
+
+## 짧은 확인 방법
+
+1. **어디로 가나요**: 새 시크릿 창에서 결과물 주소를 엽니다 (첫 접속은 서버가 깨어나느라 1분쯤 걸릴 수 있음).
+2. **세 단계 안에 무엇을 하나요**: ① 첫 화면이 로그인 화면인지 보고 → ② 주소 끝에 `/app`을 붙여 자료 화면을 직접 열어 보고 → ③ "가입하기"로 아무 아이디나 만들어 들어갑니다.
+3. **무엇이 보이면 통과인가요**: ②에서 자료 대신 로그인 화면으로 돌아오고, ③에서 들어간 새 계정에는 계획이 하나도 없습니다(남의 기록이 섞이지 않음). 로그아웃을 누르면 다시 로그인 화면입니다.
+4. **안 될 때는 무엇이 보이나요**: 로그인 칸 아래 빨간 글씨로 "아이디 또는 비밀번호가 맞지 않습니다"·"이미 쓰이는 아이디입니다"·"서버에 연결하지 못했습니다…"가 뜨거나, Render의 "Service Unavailable"/로딩 화면이 나옵니다.
+
+## 점검 결과 (로컬 PostgreSQL 16 + Chromium)
+
+- `npm test`: 57개 통과 (T06 기준 33개를 로그인한 계정으로 다시 + 가입·로그인·세션·격리·내보내기·계정 삭제·T06 옮기기 22개 + 5일 기록 2개)
+- `npm run test:e2e`: 14개 통과 (새 브라우저의 첫 화면·/app 되돌림·같은 실패 문구, 5일 기록 화면, 로그아웃, 콘솔 오류 0 등)
+- `npm run check:secrets`: 비밀값 원문 없음

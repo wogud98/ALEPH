@@ -1,5 +1,6 @@
-# Render Blueprint: T06 플랜두씨 다이어리 (challenge/T06)
+# Render Blueprint: T06 플랜두씨 다이어리 (challenge/T06) + T07 로그인 붙인 판 (challenge/T07)
 # 웹 서비스(Node)와 PostgreSQL을 함께 만든다. DB 접속 주소는 Render가 환경 변수로 직접 넣으므로 저장소에는 비밀값이 없다.
+# T07은 무료 PostgreSQL 하나를 T06과 함께 쓰되, 표는 t07 스키마에 따로 둔다 (T06 서버는 public 스키마만 본다).
 services:
   - type: web
     name: aleph-t06-pds
@@ -17,6 +18,30 @@ services:
         fromDatabase:
           name: aleph-t06-db
           property: connectionString
+
+  - type: web
+    name: aleph-t07-pds
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: challenge/T07
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aleph-t06-db
+          property: connectionString
+      - key: DB_SCHEMA
+        value: t07
+      - key: COOKIE_SECURE
+        value: "1"
+      # T06 자료를 옮겨 받을 내 아이디. 비밀값은 아니지만 저장소에 적지 않고 Render 화면에서 넣는다.
+      - key: T06_OWNER_USERNAME
+        sync: false
 
 databases:
   - name: aleph-t06-db
