@@ -47,7 +47,7 @@ node scripts/evidence.js https://<배포 주소> > evidence.md       # DATABASE_
 
 ## 배포 (Render)
 
-1. 이 브랜치가 `main`에 합쳐지면 Render의 Blueprint(`render.yaml`)에 `aleph-t07-pds` 웹 서비스가 추가됩니다. Blueprint 화면에서 동기화(Sync)하고, `T06_OWNER_USERNAME`에 내가 쓸 아이디를 넣습니다.
+1. Render에서 **New → Web Service**로 이 저장소를 고르고 Root Directory `challenge/T07`, Build `npm ci --omit=dev`, Start `npm start`로 만듭니다. 환경 변수는 `DATABASE_URL`(aleph-t06-db의 **Internal Database URL**, `postgresql://`로 시작), `DB_SCHEMA=t07`, `COOKIE_SECURE=1`, `NODE_VERSION=22`, `T06_OWNER_USERNAME`(내가 쓸 아이디)입니다. 지금 떠 있는 T06 서비스가 Blueprint에 묶여 있지 않아서, `render.yaml`로 동기화하면 이름 뒤에 `-xxxx`가 붙은 중복 서비스와 DB가 새로 생기므로 쓰지 않았습니다.
 2. T07은 T06과 같은 무료 PostgreSQL(`aleph-t06-db`)을 쓰고 표는 `t07` 스키마에 둡니다. T06 서버는 `public` 스키마만 보므로 T07 자료를 읽을 수 없습니다.
 3. 결과물 주소에서 `T06_OWNER_USERNAME`과 같은 아이디로 가입하면, 그 순간 T06 자료가 이 계정으로 한 번 옮겨집니다 (화면 위에 "T06 다이어리 자료를 이 계정으로 옮겨 왔습니다"가 보임).
 
