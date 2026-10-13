@@ -1,0 +1,22 @@
+{
+  "name": "aleph-t07-pds-diary",
+  "version": "2.0.0",
+  "private": true,
+  "description": "플랜두씨 다이어리 2: T06 다이어리에 가입·로그인·주인 확인을 붙임 (Node + PostgreSQL + argon2)",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --test-concurrency=1 test/api.test.js test/auth.test.js test/experiment.test.js",
+    "test:e2e": "node --test test/e2e.test.js",
+    "check:secrets": "node scripts/check-secrets.js",
+    "check:live": "node scripts/check-live.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "argon2": "0.45.1",
+    "pg": "^8.23.1"
+  }
+}
