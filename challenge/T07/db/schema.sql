@@ -25,6 +25,9 @@ create table if not exists users (
   created_at           timestamptz not null default now()
 );
 create unique index if not exists users_username_key on users (username);
+-- 비밀번호 찾기용 복구 코드. 원문은 가입할 때 화면에 한 번만 보여 주고, DB에는 argon2id 해시만 둔다.
+-- 한 번 쓰면(비밀번호를 다시 정하면) 새 코드로 바뀐다.
+alter table users add column if not exists recovery_hash text check (recovery_hash is null or recovery_hash like '$argon2id$%');
 
 -- 로그인 세션. 브라우저 쿠키에는 무작위 토큰 원문, DB에는 그 SHA-256 값만 둔다.
 -- 로그아웃·비밀번호 변경 때 revoked_at을 적어 서버에서 끊는다. expires_at이 지나도 끊긴다.

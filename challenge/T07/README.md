@@ -19,7 +19,7 @@ T06 다이어리(`challenge/T06`, 배포 https://aleph-t06-pds.onrender.com, 이
 
 | 경로 | 바뀐 것 |
 |---|---|
-| `src/auth.js` (새 파일) | 가입·로그인·로그아웃·비밀번호 변경·계정 삭제, 세션 만들기/찾기/끊기, 로그인 실패 제한 |
+| `src/auth.js` (새 파일) | 가입·로그인·로그아웃·비밀번호 변경·계정 삭제, 세션 만들기/찾기/끊기, 로그인 실패 제한, 복구 코드로 비밀번호 찾기 |
 | `src/app.js` | `/`·`/app` 앞에서 세션 확인(없으면 로그인 화면), `/api/auth/*`, 그 밖의 `/api/*`는 세션 없으면 401, 모든 API에 세션의 `user.id`를 넘김, 다른 사이트 Origin 거절 |
 | `src/service.js` | 모든 조회·수정·삭제 SQL에 `owner_id = 로그인한 사람` 조건 (남의 것은 404) |
 | `src/experiment.js` (새 파일) | 5일 기록: 질문·지표·단위·규칙, 날짜별 값, 2일차 뒤·3일차 앞 규칙 변경 한 번, 합계·평균 |
@@ -28,6 +28,7 @@ T06 다이어리(`challenge/T06`, 배포 https://aleph-t06-pds.onrender.com, 이
 | `db/schema.sql` | `users`, `sessions`, `plans.owner_id`, `t06_imports`, `experiments`, `experiment_days`, `experiment_rule_changes` |
 | `public/login.html`, `public/login.js` (새 파일) | 로그인·가입 화면 |
 | `public/index.html`, `public/app.js` | 아이디·로그아웃·계정(비밀번호 바꾸기, 계정 지우기), "Ⅳ 5일 기록" 탭, 401이면 로그인 화면으로 |
+| `scripts/reset-password.js` (새 파일) | 복구 코드도 없을 때 운영자가 DB에 붙어 임시 비밀번호를 정함 (모든 로그인 끊김) |
 | `scripts/evidence.js` (새 파일) | 실제 서버에 요청을 보내 "막히는 장면" 기록(Markdown)을 만듦. 비밀번호·세션 값은 가림 |
 | `seed/`, `src/seed.js` | 뺐음 (T06 자료는 `import-t06.js`로 옮김) |
 
@@ -53,6 +54,19 @@ node scripts/evidence.js https://<배포 주소> > evidence.md       # DATABASE_
 
 무료 요금제 주의: 웹 서비스는 15분 동안 접속이 없으면 잠들어 첫 접속이 1분쯤 걸립니다. 무료 PostgreSQL은 만든 날부터 30일 뒤 만료되므로 그 전에 "내보내기"로 파일을 받아 둡니다.
 
+## 비밀번호를 잊었을 때
+
+이메일을 받지 않으므로 **복구 코드**로 찾습니다.
+
+- 가입하면 `XXXXX-XXXXX-XXXXX-XXXXX` 모양의 복구 코드를 한 번만 보여 줍니다. 서버에는 argon2id 해시만 남습니다.
+- 로그인 화면의 "비밀번호를 잊었어요"(`/reset`)에서 아이디 + 복구 코드 + 새 비밀번호를 넣으면, 비밀번호가 바뀌고 다른 기기의 로그인은 모두 끊기며 복구 코드도 새것으로 바뀝니다 (한 번 쓴 코드는 다시 못 씀). 틀리면 아이디가 있든 없든 "아이디 또는 복구 코드가 맞지 않습니다", 15분 안에 10번 틀리면 429.
+- 로그인한 상태에서는 "계정 → 복구 코드 새로 받기"로 언제든 새 코드를 받습니다 (지금 비밀번호 확인). 이 기능 전에 만든 계정은 여기서 처음 받습니다.
+- 복구 코드도 없으면 운영자가 DB에 붙어 임시 비밀번호를 정합니다. 임시 비밀번호는 터미널에 한 번만 찍힙니다.
+
+```
+DATABASE_URL='<Render의 External Database URL>' npm run reset-password -- <아이디>
+```
+
 ## 짧은 확인 방법
 
 1. **어디로 가나요**: 새 시크릿 창에서 결과물 주소를 엽니다 (첫 접속은 서버가 깨어나느라 1분쯤 걸릴 수 있음).
@@ -62,6 +76,6 @@ node scripts/evidence.js https://<배포 주소> > evidence.md       # DATABASE_
 
 ## 점검 결과 (로컬 PostgreSQL 16 + Chromium)
 
-- `npm test`: 57개 통과 (T06 기준 33개를 로그인한 계정으로 다시 + 가입·로그인·세션·격리·내보내기·계정 삭제·T06 옮기기 22개 + 5일 기록 2개)
-- `npm run test:e2e`: 14개 통과 (새 브라우저의 첫 화면·/app 되돌림·같은 실패 문구, 5일 기록 화면, 로그아웃, 콘솔 오류 0 등)
+- `npm test`: 62개 통과 (T06 기준 33개를 로그인한 계정으로 다시 + 가입·로그인·세션·격리·내보내기·계정 삭제·T06 옮기기 22개 + 비밀번호 찾기 5개 + 5일 기록 2개)
+- `npm run test:e2e`: 15개 통과 (새 브라우저의 첫 화면·/app 되돌림·같은 실패 문구, 가입 → 복구 코드 → 비밀번호 찾기, 5일 기록 화면, 로그아웃, 콘솔 오류 0 등)
 - `npm run check:secrets`: 비밀값 원문 없음

@@ -224,6 +224,45 @@ test('T07 5일 기록: 화면에서 정하고 오늘 값을 적으면 합계·�
   assert.equal(await page.locator('#rule-open').isDisabled(), true, '2일차 전에는 규칙을 못 바꾼다');
 });
 
+test('비밀번호 찾기: 가입하면 복구 코드를 한 번 보여 주고, 그 코드로 새 비밀번호를 정해 들어간다', opts, async () => {
+  const ctx = await browser.newContext();
+  const p = await ctx.newPage();
+  p.on('pageerror', (e) => consoleErrors.push(e.message));
+  const pw1 = `pw-${Date.now()}-first`;
+  const pw2 = `pw-${Date.now()}-second`;
+  await p.goto(S.base + '/signup');
+  await p.fill('#signup-form [name=username]', 'e2e_reset');
+  await p.fill('#signup-form [name=password]', pw1);
+  await p.fill('#signup-form [name=password2]', pw1);
+  await p.click('#signup-form [type=submit]');
+  await p.locator('#code-box').waitFor();
+  const code = (await p.textContent('#code-value')).trim();
+  assert.match(code, /^[A-Z2-9]{5}(-[A-Z2-9]{5}){3}$/);
+  await p.click('#code-done');
+  await p.waitForURL('**/app');
+  await p.click('#logout-btn');
+  await p.waitForURL('**/login');
+  await p.click('#to-reset');
+  assert.match(p.url(), /\/reset$/);
+  await p.fill('#reset-form [name=username]', 'e2e_reset');
+  await p.fill('#reset-form [name=recovery_code]', 'AAAAA-AAAAA-AAAAA-AAAAA');
+  await p.fill('#reset-form [name=password]', pw2);
+  await p.fill('#reset-form [name=password2]', pw2);
+  await p.click('#reset-form [type=submit]');
+  await p.waitForFunction(() => document.querySelector('#reset-error').textContent !== '');
+  assert.equal(await p.textContent('#reset-error'), '아이디 또는 복구 코드가 맞지 않습니다');
+  await p.fill('#reset-form [name=recovery_code]', code);
+  await p.fill('#reset-form [name=password]', pw2);
+  await p.fill('#reset-form [name=password2]', pw2);
+  await p.click('#reset-form [type=submit]');
+  await p.locator('#code-box').waitFor();
+  assert.notEqual((await p.textContent('#code-value')).trim(), code, '새 복구 코드');
+  await p.click('#code-done');
+  await p.waitForURL('**/app');
+  assert.equal(await p.textContent('#who-name'), 'e2e_reset');
+  await ctx.close();
+});
+
 test('T07-C96 로그아웃하면 로그인 화면으로 가고, 뒤로 가도 자료가 안 보인다', opts, async () => {
   await page.click('#logout-btn');
   await page.waitForURL('**/login');

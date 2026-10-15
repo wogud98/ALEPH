@@ -408,6 +408,11 @@
         },
         "created_at": {
           "type": "timestamptz"
+        },
+        "recovery_hash": {
+          "type": "text",
+          "nullable": true,
+          "note": "비밀번호 찾기용 복구 코드의 argon2id 해시 (원문은 저장하지 않음)"
         }
       }
     },

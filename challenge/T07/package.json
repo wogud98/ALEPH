@@ -12,7 +12,8 @@
     "test": "node --test --test-concurrency=1 test/api.test.js test/auth.test.js test/experiment.test.js",
     "test:e2e": "node --test test/e2e.test.js",
     "check:secrets": "node scripts/check-secrets.js",
-    "check:live": "node scripts/check-live.js"
+    "check:live": "node scripts/check-live.js",
+    "reset-password": "node scripts/reset-password.js"
   },
   "license": "UNLICENSED",
   "dependencies": {

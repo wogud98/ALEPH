@@ -283,6 +283,13 @@
         <p class="hint">바꾸면 다른 기기·브라우저의 로그인은 모두 끊기고, 이 브라우저만 새로 로그인된 상태로 남습니다.</p>
         <button type="submit" class="btn">비밀번호 바꾸기</button>
       </form>
+      <form id="recovery-form" class="form">
+        <h4>복구 코드 새로 받기</h4>
+        <p class="hint" id="recovery-state">비밀번호를 잊었을 때 로그인 화면의 "비밀번호를 잊었어요"에서 이 코드로 새 비밀번호를 정합니다. 새로 받으면 예전 코드는 바로 못 씁니다.</p>
+        <label>지금 비밀번호 <input name="password" type="password" autocomplete="current-password" required></label>
+        <p class="recovery-code" id="recovery-value" hidden></p>
+        <button type="submit" class="btn">복구 코드 새로 받기</button>
+      </form>
       <form id="delete-form" class="form sheet danger-zone">
         <h4>계정 지우기</h4>
         <p><strong>계정을 지우면 내 계획·할 일·실행 기록·돌아보기·5일 기록이 모두 함께 지워지고 되돌릴 수 없습니다.</strong> 필요하면 먼저 "내보내기"로 파일을 받아 두세요.</p>

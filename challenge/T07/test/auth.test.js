@@ -347,6 +347,81 @@ describe('카드 5 — 내보내기·계정 지우기', () => {
   });
 });
 
+describe('비밀번호 찾기 (복구 코드)', () => {
+  test('가입 응답에 복구 코드가 한 번 나오고, DB에는 argon2id 해시만 있다', async () => {
+    const c = S.client();
+    const r = await c.signup('rc_user');
+    assert.match(r.json.recovery_code, /^[A-Z2-9]{5}(-[A-Z2-9]{5}){3}$/);
+    const row = (await S.pool.query(`select recovery_hash from users where username = 'rc_user'`)).rows[0];
+    assert.match(row.recovery_hash, /^\$argon2id\$/);
+    assert.ok(!row.recovery_hash.includes(r.json.recovery_code.replace(/-/g, '')));
+    assert.equal((await c.call('GET', '/api/auth/me')).json.has_recovery_code, true);
+    assert.equal((await c.call('GET', '/api/auth/me')).json.recovery_code, undefined, '로그인 뒤에는 다시 보여 주지 않는다');
+  });
+
+  test('아이디 + 복구 코드로 새 비밀번호를 정하면 이전 로그인이 모두 끊기고, 코드는 한 번만 쓰인다', async () => {
+    const a = S.client();
+    const code = (await a.signup('rc_reset')).json.recovery_code;
+    const other = S.client();
+    await other.call('POST', '/api/auth/login', { username: 'rc_reset', password: a.password });
+    const b = S.client();
+    const newPw = testPassword();
+    // 소문자·하이픈 빼고 넣어도 같은 코드로 본다
+    const r = await b.call('POST', '/api/auth/reset', { username: 'rc_reset', recovery_code: code.toLowerCase().replace(/-/g, ' '), new_password: newPw });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.revoked_sessions, 2);
+    assert.match(r.json.recovery_code, /^[A-Z2-9]{5}(-[A-Z2-9]{5}){3}$/);
+    assert.notEqual(r.json.recovery_code, code);
+    assert.ok(!JSON.stringify(r.json).includes(newPw));
+    assert.equal((await a.call('GET', '/api/plans')).status, 401, '예전 브라우저 1');
+    assert.equal((await other.call('GET', '/api/plans')).status, 401, '예전 브라우저 2');
+    assert.equal((await b.call('GET', '/api/plans')).status, 200, '찾은 브라우저는 로그인됨');
+    assert.equal((await S.client().call('POST', '/api/auth/login', { username: 'rc_reset', password: a.password })).status, 401);
+    assert.equal((await S.client().call('POST', '/api/auth/login', { username: 'rc_reset', password: newPw })).status, 200);
+    const again = await S.client().call('POST', '/api/auth/reset', { username: 'rc_reset', recovery_code: code, new_password: testPassword() });
+    assert.equal(again.status, 401, '쓴 코드는 다시 못 쓴다');
+  });
+
+  test('틀린 코드·없는 아이디·남의 코드는 같은 401, 10번 틀리면 429', async () => {
+    const a = S.client();
+    const codeA = (await a.signup('rc_a')).json.recovery_code;
+    await S.client().signup('rc_b');
+    const wrong = await S.client().call('POST', '/api/auth/reset', { username: 'rc_b', recovery_code: codeA, new_password: testPassword() });
+    const nobody = await S.client().call('POST', '/api/auth/reset', { username: 'rc_nobody', recovery_code: codeA, new_password: testPassword() });
+    assert.equal(wrong.status, 401);
+    assert.equal(nobody.status, 401);
+    assert.equal(wrong.json.error, nobody.json.error);
+    assert.equal(wrong.headers.get('set-cookie'), null);
+    const c = S.client();
+    for (let i = 0; i < 9; i++) {
+      assert.equal((await c.call('POST', '/api/auth/reset', { username: 'rc_b', recovery_code: 'AAAAA-AAAAA-AAAAA-AAAAA', new_password: testPassword() })).status, 401);
+    }
+    assert.equal((await c.call('POST', '/api/auth/reset', { username: 'rc_b', recovery_code: 'AAAAA-AAAAA-AAAAA-AAAAA', new_password: testPassword() })).status, 429);
+    const short = await S.client().call('POST', '/api/auth/reset', { username: 'rc_a', recovery_code: codeA, new_password: 'short' });
+    assert.equal(short.status, 400);
+  });
+
+  test('로그인한 사람은 지금 비밀번호를 확인받고 복구 코드를 새로 받는다 (예전 코드는 못 쓴다)', async () => {
+    const a = S.client();
+    const old = (await a.signup('rc_renew')).json.recovery_code;
+    assert.equal((await a.call('POST', '/api/account/recovery-code', { password: testPassword() })).status, 403);
+    assert.equal((await S.client().call('POST', '/api/account/recovery-code', { password: a.password })).status, 401, '로그인 없이');
+    const r = await a.call('POST', '/api/account/recovery-code', { password: a.password });
+    assert.equal(r.status, 200, r.text);
+    assert.notEqual(r.json.recovery_code, old);
+    assert.equal((await S.client().call('POST', '/api/auth/reset', { username: 'rc_renew', recovery_code: old, new_password: testPassword() })).status, 401);
+    assert.equal((await S.client().call('POST', '/api/auth/reset', { username: 'rc_renew', recovery_code: r.json.recovery_code, new_password: testPassword() })).status, 200);
+  });
+
+  test('복구 코드가 없는 예전 계정은 찾기로 바뀌지 않고, 화면에 받아 두라고 알린다', async () => {
+    const a = S.client();
+    const code = (await a.signup('rc_legacy')).json.recovery_code;
+    await S.pool.query(`update users set recovery_hash = null where username = 'rc_legacy'`);
+    assert.equal((await a.call('GET', '/api/auth/me')).json.has_recovery_code, false);
+    assert.equal((await S.client().call('POST', '/api/auth/reset', { username: 'rc_legacy', recovery_code: code, new_password: testPassword() })).status, 401);
+  });
+});
+
 describe('T07-C100 T06 자료 옮기기', () => {
   test('T06_OWNER_USERNAME 계정이 처음 로그인할 때 public(T06) 자료가 그 계정으로 한 번만 옮겨진다', async () => {
     // 같은 DB의 public 스키마에 T06 스키마와 자료를 만든다 (T06 서버가 쓰던 모양 그대로)

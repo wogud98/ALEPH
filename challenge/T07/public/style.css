@@ -341,3 +341,10 @@ dialog h3 { font-size: 1.2rem; }
   .compare { grid-template-columns: 1fr; }
   .exp-def { grid-template-columns: 1fr; }
 }
+
+/* 복구 코드 */
+.recovery-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.15rem; letter-spacing: .06em; padding: .6rem .8rem;
+  border: 1px dashed currentColor; border-radius: 6px; text-align: center; user-select: all; word-break: break-all;
+}
