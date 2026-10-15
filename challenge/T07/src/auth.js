@@ -6,6 +6,11 @@
 //   * DB에는 토큰 원문이 아니라 SHA-256 값만 저장한다. 서명용 비밀키는 없다 (그래서 새어 나갈 비밀키도 없다).
 //   * 요청마다 쿠키 토큰의 SHA-256으로 sessions를 찾고, 끊기지 않았고(revoked_at 없음) 만료 전인지 본다.
 //   * 로그아웃: 그 세션에 revoked_at을 적는다. 비밀번호 변경: 그 계정의 모든 세션에 revoked_at을 적는다.
+//
+// 비밀번호 찾기 (이메일을 받지 않으므로 복구 코드 방식)
+//   * 가입할 때 무작위 복구 코드(20자)를 만들어 응답으로 한 번만 보여 주고, DB에는 argon2id 해시만 둔다.
+//   * 아이디 + 복구 코드 + 새 비밀번호를 보내면 비밀번호를 바꾸고, 모든 세션을 끊고, 복구 코드도 새것으로 바꾼다.
+//   * 틀리면 아이디가 있든 없든 같은 문구, 로그인과 같은 횟수 제한을 건다.
 const crypto = require('node:crypto');
 const argon2 = require('argon2');
 const { tx } = require('./db');
@@ -15,6 +20,7 @@ const COOKIE = 'pds_sid';
 const SESSION_DAYS = 7;
 const SESSION_MS = SESSION_DAYS * 24 * 60 * 60 * 1000;
 const LOGIN_FAIL = '아이디 또는 비밀번호가 맞지 않습니다';
+const RESET_FAIL = '아이디 또는 복구 코드가 맞지 않습니다';
 
 // argon2id 기본값(메모리 64MiB, 반복 3, 병렬 4). 소금값은 라이브러리가 해시마다 새로 만들어 해시 문자열 안에 넣는다.
 const HASH_OPTS = { type: argon2.argon2id };
@@ -24,6 +30,24 @@ let dummyHash;
 const getDummy = async () => (dummyHash ||= await argon2.hash(crypto.randomBytes(32).toString('hex'), HASH_OPTS));
 
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest();
+
+// 복구 코드: 헷갈리는 글자(0·O·1·I·L·U)를 뺀 32글자에서 20자를 뽑아 5자씩 끊는다 (100비트).
+const CODE_ABC = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
+function newRecoveryCode() {
+  const out = [];
+  while (out.length < 20) {
+    for (const b of crypto.randomBytes(32)) {
+      if (b < 240 && out.length < 20) out.push(CODE_ABC[b % 30]);
+    }
+  }
+  return out.join('').match(/.{5}/g).join('-');
+}
+const normCode = (v) => (typeof v === 'string' ? v.toUpperCase().replace(/[^A-Z0-9]/g, '') : '');
+async function setRecoveryCode(db, userId) {
+  const code = newRecoveryCode();
+  await db.query('update users set recovery_hash = $2 where id = $1', [userId, await argon2.hash(normCode(code), HASH_OPTS)]);
+  return code;
+}
 
 function username(body) {
   const v = body.username;
@@ -124,7 +148,8 @@ async function signup(pool, body) {
     );
     if (!ins.rows[0]) throw new HttpError(409, '이미 쓰이는 아이디입니다');
     const s = await createSession(c, ins.rows[0].id);
-    return { user: ins.rows[0], session: s };
+    const recovery_code = await setRecoveryCode(c, ins.rows[0].id);
+    return { user: ins.rows[0], session: s, recovery_code };
   });
 }
 
@@ -172,6 +197,44 @@ async function changePassword(pool, user, body) {
   });
 }
 
+// 비밀번호 찾기: 아이디 + 복구 코드가 맞으면 새 비밀번호로 바꾸고, 모든 세션을 끊고, 복구 코드를 새것으로 바꾼다.
+async function resetPassword(pool, body) {
+  const u = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
+  const code = normCode(body.recovery_code);
+  const next = password(body, 'new_password', '새 비밀번호');
+  if (!u || !code) throw new HttpError(401, RESET_FAIL);
+  const key = `reset:${u}`;
+  checkThrottle(key);
+  const { rows } = await pool.query('select * from users where username = $1', [u]);
+  const user = rows[0];
+  const ok = await argon2.verify(user?.recovery_hash || await getDummy(), code).catch(() => false);
+  if (!user || !user.recovery_hash || !ok) {
+    recordFail(key);
+    throw new HttpError(401, RESET_FAIL);
+  }
+  fails.delete(key);
+  fails.delete(u);
+  const hash = await argon2.hash(next, HASH_OPTS);
+  return tx(pool, async (c) => {
+    await c.query('update users set password_hash = $2, password_changed_at = now() where id = $1', [user.id, hash]);
+    const r = await c.query('update sessions set revoked_at = now() where user_id = $1 and revoked_at is null', [user.id]);
+    const recovery_code = await setRecoveryCode(c, user.id);
+    const s = await createSession(c, user.id);
+    return { user, session: s, revoked_sessions: r.rowCount, recovery_code };
+  });
+}
+
+// 로그인한 사람이 지금 비밀번호를 확인받고 복구 코드를 새로 받는다 (예전 코드는 바로 못 쓰게 된다).
+async function renewRecoveryCode(pool, user, body) {
+  await verifyPassword(pool, user.id, typeof body.password === 'string' ? body.password : '');
+  return { recovery_code: await setRecoveryCode(pool, user.id) };
+}
+
+async function hasRecoveryCode(pool, userId) {
+  const { rows } = await pool.query('select recovery_hash is not null as has from users where id = $1', [userId]);
+  return Boolean(rows[0]?.has);
+}
+
 // 계정 지우기: 비밀번호를 한 번 더 받고, users 한 줄을 지운다. 계획·할 일·실행 기록·돌아보기·5일 기록·세션은 cascade로 함께 지워진다.
 async function deleteAccount(pool, user, body) {
   await verifyPassword(pool, user.id, typeof body.password === 'string' ? body.password : '');
@@ -187,8 +250,9 @@ async function deleteAccount(pool, user, body) {
 }
 
 module.exports = {
-  COOKIE, SESSION_DAYS, LOGIN_FAIL,
+  COOKIE, SESSION_DAYS, LOGIN_FAIL, RESET_FAIL,
   signup, login, logout, currentUser, changePassword, deleteAccount,
+  resetPassword, renewRecoveryCode, hasRecoveryCode, setRecoveryCode, newRecoveryCode,
   sessionCookie, clearCookie, userOut, readCookie,
   _resetThrottle: () => fails.clear(),
 };

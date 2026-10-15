@@ -12,6 +12,7 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const STATIC = {
   '/login': ['login.html', 'text/html; charset=utf-8'],
   '/signup': ['login.html', 'text/html; charset=utf-8'],
+  '/reset': ['login.html', 'text/html; charset=utf-8'],
   '/login.js': ['login.js', 'text/javascript; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
   '/style.css': ['style.css', 'text/css; charset=utf-8'],
@@ -155,9 +156,9 @@ function createHandler(pool, { log = console } = {}) {
       if (pathname.startsWith('/api/auth/')) {
         if (req.method === 'POST') checkJson(req);
         if (req.method === 'POST' && pathname === '/api/auth/signup') {
-          const { user, session } = await auth.signup(pool, await readJson(req));
+          const { user, session, recovery_code } = await auth.signup(pool, await readJson(req));
           const imported = await importT06IfOwner(pool, user);
-          return send(res, 201, { user: auth.userOut(user, session.expires), t06_import: imported },
+          return send(res, 201, { user: auth.userOut(user, session.expires), t06_import: imported, recovery_code },
             { 'Set-Cookie': auth.sessionCookie(req, session.token, session.expires) });
         }
         if (req.method === 'POST' && pathname === '/api/auth/login') {
@@ -165,6 +166,11 @@ function createHandler(pool, { log = console } = {}) {
           const imported = await importT06IfOwner(pool, user);
           return send(res, 200, { user: auth.userOut(user, session.expires), t06_import: imported },
             { 'Set-Cookie': auth.sessionCookie(req, session.token, session.expires) });
+        }
+        if (req.method === 'POST' && pathname === '/api/auth/reset') {
+          const out = await auth.resetPassword(pool, await readJson(req));
+          return send(res, 200, { user: auth.userOut(out.user, out.session.expires), revoked_sessions: out.revoked_sessions, recovery_code: out.recovery_code },
+            { 'Set-Cookie': auth.sessionCookie(req, out.session.token, out.session.expires) });
         }
         if (req.method === 'POST' && pathname === '/api/auth/logout') {
           await auth.logout(pool, req);
@@ -179,13 +185,20 @@ function createHandler(pool, { log = console } = {}) {
       if (!user) throw new HttpError(401, '로그인이 필요합니다');
 
       if (req.method === 'GET' && pathname === '/api/auth/me') {
-        return send(res, 200, { user: auth.userOut(user, user.expires_at), t06_import: await importStatus(pool, user.id) });
+        return send(res, 200, {
+          user: auth.userOut(user, user.expires_at), t06_import: await importStatus(pool, user.id),
+          has_recovery_code: await auth.hasRecoveryCode(pool, user.id),
+        });
       }
       if (req.method === 'POST' && pathname === '/api/account/password') {
         checkJson(req);
         const out = await auth.changePassword(pool, user, await readJson(req));
         return send(res, 200, { changed: true, revoked_sessions: out.revoked_sessions },
           { 'Set-Cookie': auth.sessionCookie(req, out.session.token, out.session.expires) });
+      }
+      if (req.method === 'POST' && pathname === '/api/account/recovery-code') {
+        checkJson(req);
+        return send(res, 200, await auth.renewRecoveryCode(pool, user, await readJson(req)));
       }
       if (req.method === 'DELETE' && pathname === '/api/account') {
         checkJson(req);

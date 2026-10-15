@@ -757,6 +757,9 @@ async function loadMe() {
   state.me = me.user;
   $('#who-name').textContent = me.user.username;
   $('#session-exp').textContent = me.user.session_expires_at ? `이 로그인은 ${fmtTime(me.user.session_expires_at)}에 끊깁니다.` : '';
+  if (!me.has_recovery_code) {
+    $('#recovery-state').textContent = '이 계정에는 아직 복구 코드가 없습니다. 비밀번호를 잊으면 되찾을 수 없으니 지금 받아 두세요.';
+  }
   const imp = me.t06_import;
   const note = $('#import-note');
   note.hidden = !imp;
@@ -789,6 +792,26 @@ async function submitPassword(e) {
     await loadMe();
   } catch (err) {
     f.elements.current_password.value = '';
+    fail(err);
+  } finally {
+    busy(btn, false);
+  }
+}
+
+async function submitRecovery(e) {
+  e.preventDefault();
+  const f = e.currentTarget;
+  const btn = f.querySelector('button[type=submit]');
+  busy(btn, true);
+  try {
+    const r = await api('POST', '/api/account/recovery-code', { password: f.elements.password.value });
+    f.reset();
+    const out = $('#recovery-value');
+    out.textContent = r.recovery_code;
+    out.hidden = false;
+    $('#recovery-state').textContent = '새 복구 코드입니다. 지금 한 번만 보여 주니 적어 두세요. 예전 코드는 이제 못 씁니다.';
+  } catch (err) {
+    f.elements.password.value = '';
     fail(err);
   } finally {
     busy(btn, false);
@@ -963,7 +986,10 @@ async function init() {
   await loadMe();
   $('#logout-btn').addEventListener('click', logout);
   $('#account-btn').addEventListener('click', () => $('#account-dialog').showModal());
+  // 복구 코드는 창을 닫으면 화면에서 지운다.
+  $('#account-dialog').addEventListener('close', () => { $('#recovery-value').hidden = true; $('#recovery-value').textContent = ''; });
   $('#pw-form').addEventListener('submit', submitPassword);
+  $('#recovery-form').addEventListener('submit', submitRecovery);
   $('#delete-form').addEventListener('submit', submitDelete);
   bindExp();
   showView(viewOf(location.hash));
