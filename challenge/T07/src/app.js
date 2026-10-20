@@ -4,6 +4,7 @@ const path = require('node:path');
 const svc = require('./service');
 const auth = require('./auth');
 const exp = require('./experiment');
+const cal = require('./calendar');
 const { importT06IfOwner, importStatus } = require('./import-t06');
 const { HttpError, idParam } = require('./validate');
 
@@ -78,6 +79,7 @@ function readJson(req) {
 // 모든 handler는 세션에서 찾은 user.id만 주인으로 쓴다. 주소·헤더·본문에 다른 계정을 적어 보내도 쓰지 않는다.
 const ROUTES = [
   ['GET', /^\/api\/meta$/, (p) => svc.meta(p)],
+  ['GET', /^\/api\/calendar$/, (p, u, m, q) => cal.range(p, u.id, q)],
   ['GET', /^\/api\/plans$/, (p, u) => svc.listPlans(p, u.id)],
   ['POST', /^\/api\/plans$/, (p, u, m, q, b) => svc.createPlan(p, u.id, b), 201],
   ['GET', /^\/api\/plans\/(\d+)$/, (p, u, m) => svc.getPlan(p, u.id, idParam(m[1]))],

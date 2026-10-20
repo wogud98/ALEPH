@@ -53,6 +53,8 @@
       <p class="hint" id="import-note" hidden></p>
     </div>
     <nav class="wrap steps" aria-label="단계">
+      <a href="#cal" class="step" data-view="cal"><span class="num" aria-hidden="true">月</span><span class="step-name">달력</span><span class="step-sub" id="sum-cal"></span></a>
+      <span class="chain" aria-hidden="true"></span>
       <a href="#plan" class="step" data-view="plan"><span class="num">Ⅰ</span><span class="step-name">계획</span><span class="step-sub" id="sum-plan"></span></a>
       <span class="chain" aria-hidden="true"></span>
       <a href="#do" class="step" data-view="do"><span class="num">Ⅱ</span><span class="step-name">실행</span><span class="step-sub" id="sum-do"></span></a>
@@ -66,8 +68,28 @@
   <main class="wrap">
     <p id="status" class="status" role="status" aria-live="polite"></p>
 
+    <!-- 달력: 네이버 캘린더처럼 한 달을 한눈에 보고, 날짜를 누르면 그날 할 일·기록이 아래에 나온다 -->
+    <section id="cal" class="view" data-view="cal" aria-labelledby="cal-title">
+      <div class="cal-head">
+        <button type="button" class="cal-nav" id="cal-prev" aria-label="이전 달">‹</button>
+        <h2 id="cal-title" class="cal-title" aria-live="polite"></h2>
+        <button type="button" class="cal-nav" id="cal-next" aria-label="다음 달">›</button>
+        <button type="button" class="btn ghost small" id="cal-today">오늘</button>
+      </div>
+      <div class="cal" id="cal-grid"></div>
+      <p class="cal-legend" id="cal-legend"></p>
+      <section class="sheet day-panel" id="day-panel" aria-labelledby="day-title">
+        <div class="sheet-head">
+          <h3 id="day-title"></h3>
+          <button type="button" class="btn primary small" id="day-add-task">+ 할 일</button>
+        </div>
+        <div id="day-body"></div>
+      </section>
+      <button type="button" class="fab" id="cal-fab" aria-label="고른 날짜에 할 일 추가">+</button>
+    </section>
+
     <!-- Ⅰ 계획 -->
-    <section id="plan" class="view" data-view="plan" aria-labelledby="plan-h">
+    <section id="plan" class="view" data-view="plan" aria-labelledby="plan-h" hidden>
       <h2 id="plan-h" class="sr-only">계획</h2>
       <div id="plan-empty" class="empty" hidden>
         아직 계획이 없습니다. 지금 실제로 하고 있는 일 하나를 계획으로 적어 보세요.
@@ -253,6 +275,7 @@
   <dialog id="task-dialog" aria-labelledby="task-form-title">
     <form id="task-form" class="form">
       <h3 id="task-form-title">할 일 추가</h3>
+      <label id="task-plan-wrap">계획 <select name="plan_id"></select></label>
       <label>할 일 <input name="title" required maxlength="200"></label>
       <div class="two">
         <label>마감일 <input name="due_date" type="date"></label>

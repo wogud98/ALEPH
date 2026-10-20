@@ -224,6 +224,43 @@ test('T07 5일 기록: 화면에서 정하고 오늘 값을 적으면 합계·�
   assert.equal(await page.locator('#rule-open').isDisabled(), true, '2일차 전에는 규칙을 못 바꾼다');
 });
 
+test('달력: 첫 화면은 이번 달 달력, 날짜를 누르면 그날 할 일이 나오고 그 날짜로 할 일을 넣고 완료한다', opts, async () => {
+  await page.goto(S.base + '/app');
+  await page.locator('section.view[data-view=cal]').waitFor();
+  assert.equal(await page.locator('a.step[data-view=cal]').getAttribute('aria-current'), 'page', '첫 화면은 달력');
+  const today = page.locator(`#cal-grid .cell[data-date="${seoulToday()}"]`);
+  assert.match(await today.getAttribute('class'), /today/);
+  assert.match(await page.textContent('#day-title'), /오늘/);
+  // 어제 마감인 할 일이 어제 칸에 보인다
+  await page.click(`#cal-grid .cell[data-date="${seoulToday(-1)}"]`);
+  assert.match(await page.textContent('#day-title'), /어제/);
+  assert.ok((await page.locator('#day-body .day-task .name').allTextContents()).includes('첫 할 일'));
+
+  const day = seoulToday(1);
+  await page.click(`#cal-grid .cell[data-date="${day}"]`);
+  await page.click('#day-add-task');
+  assert.equal(await page.inputValue('#task-form [name=due_date]'), day, '고른 날짜가 마감일로 들어간다');
+  assert.equal(await page.inputValue('#task-form [name=plan_id]'), String(planId), '그날이 기간 안에 드는 계획');
+  await page.fill('#task-form [name=title]', '달력에서 넣은 일');
+  await page.click('#task-form [type=submit]');
+  const row = page.locator('#day-body .day-task', { hasText: '달력에서 넣은 일' });
+  await row.waitFor();
+  const cell = page.locator(`#cal-grid .cell[data-date="${day}"] .chip`, { hasText: '달력에서 넣은 일' });
+  await cell.waitFor();
+  await row.locator('.check').click();
+  await page.locator(`#cal-grid .cell[data-date="${day}"] .chip.done`, { hasText: '달력에서 넣은 일' }).waitFor();
+  const r = (await S.pool.query("select due_date, status, plan_id from tasks where title = '달력에서 넣은 일'")).rows;
+  assert.deepEqual(r, [{ due_date: day, status: 'done', plan_id: planId }]);
+
+  // 다음 달로 넘겼다가 "오늘"로 돌아온다
+  const title = await page.textContent('#cal-title');
+  await page.click('#cal-next');
+  await page.waitForFunction((t) => document.querySelector('#cal-title').textContent !== t, title);
+  await page.click('#cal-today');
+  await page.waitForFunction((t) => document.querySelector('#cal-title').textContent === t, title);
+  assert.match(await page.textContent('#day-title'), /오늘/);
+});
+
 test('비밀번호 찾기: 가입하면 복구 코드를 한 번 보여 주고, 그 코드로 새 비밀번호를 정해 들어간다', opts, async () => {
   const ctx = await browser.newContext();
   const p = await ctx.newPage();
