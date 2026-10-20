@@ -3,7 +3,7 @@
 
 const $ = (sel) => document.querySelector(sel);
 const PRIORITY = { 1: '높음', 2: '보통', 3: '낮음' };
-const VIEWS = ['plan', 'do', 'see', 'exp'];
+const VIEWS = ['cal', 'plan', 'do', 'see', 'exp'];
 const state = {
   meta: null,
   plans: [],
@@ -144,10 +144,13 @@ function viewOf(hash) {
   if (VIEWS.includes(h)) return h;
   if (/^(task|log)-\d+$/.test(h)) return 'do';
   if (/^retro-\d+$/.test(h)) return 'see';
-  return 'plan';
+  return 'cal';
 }
 
 function showView(name) {
+  // 달력은 스크롤 없이 한 화면에 맞춘다 (머리를 줄이고, 달력·고른 날 목록이 남은 높이를 나눠 쓴다)
+  document.body.classList.toggle('cal-mode', name === 'cal');
+  if (name === 'cal' && state.cal && state.cal.data) renderCal();
   for (const sec of document.querySelectorAll('.view')) sec.hidden = sec.dataset.view !== name;
   for (const a of document.querySelectorAll('.step')) {
     if (a.dataset.view === name) a.setAttribute('aria-current', 'page');
@@ -176,13 +179,14 @@ async function loadPlans(selectId) {
   if (!state.plans.length) {
     state.plan = null;
     $('#plan-view').replaceChildren();
+    await loadCal();
     return;
   }
   const fromUrl = Number(new URLSearchParams(location.search).get('plan'));
   const want = selectId || fromUrl || state.plans[0].id;
   const pick = state.plans.find((p) => p.id === want) ? want : state.plans[0].id;
   sel.value = String(pick);
-  await selectPlan(pick);
+  await Promise.all([selectPlan(pick), loadCal()]);
 }
 
 async function selectPlan(id) {
@@ -244,12 +248,19 @@ function renderHistory() {
   $('#history-table').replaceChildren(el('thead', {}, head), el('tbody', {}, rows));
 }
 
-function openPlanForm(mode, retro) {
+// preset: 달력에서 여러 날을 끌어 열 때 { start_date, end_date }
+function openPlanForm(mode, retro, preset) {
   const f = $('#plan-form');
   state.planFormMode = mode;
   state.carryRetro = retro || null;
+  state.planFromCal = !!preset;
   f.reset();
-  $('#plan-form-title').textContent = mode === 'edit' ? '계획 고치기' : '새 계획';
+  $('#plan-form-title').textContent = mode === 'edit' ? '계획 고치기' : preset ? `새 일정 (계획) ${fmtDate(preset.start_date)} ~ ${fmtDate(preset.end_date)}` : '새 계획';
+  if (preset) {
+    f.elements.start_date.value = preset.start_date;
+    f.elements.end_date.value = preset.end_date;
+    f.elements.estimated_minutes.value = '0';
+  }
   $('#change-reason-wrap').hidden = mode !== 'edit';
   const carry = $('#plan-form-carry');
   carry.hidden = !retro;
@@ -296,7 +307,7 @@ async function submitPlan(e) {
       const p = await api('POST', '/api/plans', body);
       $('#plan-dialog').close();
       say(`새 계획 #${p.id}을(를) 만들었습니다.`);
-      location.hash = '#plan';
+      if (!state.planFromCal) location.hash = '#plan';
       await loadPlans(p.id);
     }
   } catch (err) {
@@ -429,10 +440,11 @@ function renderLog(l) {
       el('button', { type: 'button', class: 'link danger', onclick: (e) => deleteLog(l, e.currentTarget), text: '지우기' })));
 }
 
-function renderLogForm(t) {
+function renderLogForm(t, day) {
   const key = newKey();
   // 기본값은 "방금 끝냄": 끝 = 지금, 시작 = 지금 - 예상 시간(없으면 60분). 바로 저장해도 실제 시간이 맞게 들어간다.
-  const nowMs = Date.now();
+  // 달력에서 다른 날을 골라 열면 그날의 같은 시각으로 맞춘다.
+  const nowMs = Date.now() + (day ? daysBetween(seoulToday(), day) * 86400000 : 0);
   const now = toSeoulInput(new Date(nowMs).toISOString());
   const before = toSeoulInput(new Date(nowMs - (t.estimated_minutes || 60) * 60000).toISOString());
   const doneBox = t.status === 'done' ? null : el('input', { name: 'complete', type: 'checkbox', checked: true });
@@ -455,11 +467,17 @@ function renderLogForm(t) {
   return form;
 }
 
-function openTaskForm(t) {
+// preset: 달력에서 열 때 { due_date, plan_id }
+function openTaskForm(t, preset) {
   const f = $('#task-form');
   f.reset();
   state.editingTaskId = t ? t.id : null;
   $('#task-form-title').textContent = t ? `할 일 #${t.id} 고치기` : '할 일 추가';
+  // 새 할 일은 어느 계획에 넣을지 고를 수 있다 (고치기에서는 계획을 옮기지 않는다)
+  $('#task-plan-wrap').hidden = !!t;
+  f.elements.plan_id.replaceChildren(...state.plans.map((p) => el('option', { value: p.id, text: `#${p.id} ${p.title}` })));
+  f.elements.plan_id.value = String((preset && preset.plan_id) || (state.plan && state.plan.id) || '');
+  if (preset && preset.due_date) f.elements.due_date.value = preset.due_date;
   if (t) {
     f.elements.title.value = t.title;
     f.elements.due_date.value = t.due_date || '';
@@ -488,7 +506,7 @@ async function submitTask(e) {
       await api('PATCH', `/api/tasks/${state.editingTaskId}`, body);
       say(`할 일 #${state.editingTaskId}을(를) 고쳤습니다.`);
     } else {
-      const t = await api('POST', `/api/plans/${state.plan.id}/tasks`, body);
+      const t = await api('POST', `/api/plans/${d.plan_id || state.plan.id}/tasks`, body);
       say(`할 일 #${t.id}을(를) 만들었습니다.`);
     }
     $('#task-dialog').close();
@@ -586,7 +604,7 @@ async function deleteLog(l, btn) {
 }
 
 async function refreshDoSee() {
-  await Promise.all([loadTasks(), loadReview()]);
+  await Promise.all([loadTasks(), loadReview(), loadCal()]);
 }
 
 // ---------- 돌아보기 ----------
@@ -976,6 +994,407 @@ function bindExp() {
   $('#rule-form').addEventListener('submit', submitRule);
 }
 
+// ---------- 달력 ----------
+// 네이버 캘린더처럼: 한 달 칸에 계획 기간(색 띠)·할 일 마감·실행 기록을 놓고, 날짜를 누르면 그날 내용이 아래에 나온다.
+// 주는 일요일에 시작하고(네이버 캘린더 기본), 일요일은 빨강·토요일은 파랑으로 쓴다. 날짜는 모두 서울 달력 날짜.
+const WEEKDAYS = '일월화수목금토';
+const PLAN_COLORS = 6;
+// 한 칸에 보이는 줄 수 (넘치면 "+n"). 칸 높이는 화면 높이에 따라 달라지므로 그릴 때마다 잰다.
+let CELL_ITEMS = 4;
+function measureCellItems(weeks) {
+  const grid = $('#cal-grid');
+  const head = grid.querySelector('.wd');
+  const h = grid.clientHeight - (head ? head.offsetHeight : 24);
+  if (!h || h < 0) return 4;
+  const small = matchMedia('(max-width: 640px)').matches;
+  const lineH = small ? 15 : 18;
+  const fixed = small ? 30 : 32; // 날짜 동그라미 + 얇은 계획 띠 + 아래 기록 줄
+  return Math.max(1, Math.min(6, Math.floor((h / weeks - fixed) / lineH)));
+}
+
+function addDays(ymd, n) {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function daysBetween(a, b) {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+}
+const weekdayOf = (ymd) => new Date(`${ymd}T00:00:00Z`).getUTCDay();
+const planColor = (planId) => `pc${planId % PLAN_COLORS}`;
+
+function calMonthRange(month) {
+  const first = `${month}-01`;
+  const start = addDays(first, -weekdayOf(first));
+  const last = addDays(`${shiftMonth(month, 1)}-01`, -1);
+  const end = addDays(last, 6 - weekdayOf(last));
+  return { start, end, first, last };
+}
+
+function shiftMonth(month, n) {
+  const d = new Date(`${month}-01T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + n);
+  return d.toISOString().slice(0, 7);
+}
+
+let calSeq = 0;
+async function loadCal() {
+  if (!state.cal) {
+    const today = seoulToday();
+    state.cal = { month: today.slice(0, 7), selected: today, data: null };
+  }
+  const { start, end } = calMonthRange(state.cal.month);
+  const seq = ++calSeq;
+  const data = await api('GET', `/api/calendar?from=${start}&to=${end}`);
+  if (seq !== calSeq) return;
+  state.cal.data = data;
+  renderCal();
+}
+
+function calItemsOn(day) {
+  const d = state.cal.data;
+  return {
+    plans: d.plans.filter((p) => p.start_date <= day && p.end_date >= day),
+    tasks: d.tasks.filter((t) => t.due_date === day),
+    logs: d.logs.filter((l) => l.day === day),
+    exp: d.experiment_days.find((x) => x.day_date === day),
+  };
+}
+
+function renderCal() {
+  const { month, selected, data } = state.cal;
+  const { start, end } = calMonthRange(month);
+  const today = data.today_seoul;
+  $('#cal-title').textContent = `${month.slice(0, 4)}년 ${Number(month.slice(5))}월`;
+  $('#cal-today').disabled = month === today.slice(0, 7) && selected === today;
+
+  const head = [...WEEKDAYS].map((w, i) => el('div', { class: `wd${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}`, 'aria-hidden': 'true', text: w }));
+  const weeks = daysBetween(start, end) / 7 + 1 | 0;
+  $('#cal-grid').style.setProperty('--weeks', weeks);
+  const touch = matchMedia('(pointer: coarse)').matches;
+  $('#cal-legend').replaceChildren(...data.plans.map((p) => el('span', { class: `legend ${planColor(p.id)}` }, el('i', { 'aria-hidden': 'true' }), p.title)),
+    el('span', { class: 'cal-hint', text: touch ? '꾹 눌러 끌면 새 일정 · 할 일 꾹 눌러 끌면 날짜 옮김' : '여러 날을 끌면 새 일정 · 할 일을 끌어 다른 날에 놓으면 날짜 옮기기' }));
+  // 칸에 들어갈 줄 수는 그려 본 뒤 칸 높이로 다시 재고, 달라졌으면 한 번 더 그린다
+  const draw = () => {
+    const cells = [];
+    for (let wk = start; wk <= end; wk = addDays(wk, 7)) {
+      const wkEnd = addDays(wk, 6);
+      // 이 주에 걸친 계획마다 줄(lane)을 하나씩 정해, 여러 날에 걸친 띠가 같은 높이로 이어지게 한다
+      const lanes = data.plans.filter((p) => p.start_date <= wkEnd && p.end_date >= wk);
+      for (let i = 0; i < 7; i++) {
+        const day = addDays(wk, i);
+        cells.push(renderCalCell(day, lanes, { today, month, selected }));
+      }
+    }
+    $('#cal-grid').replaceChildren(...head, ...cells);
+  };
+  draw();
+  const fit = measureCellItems(weeks);
+  if (fit !== CELL_ITEMS) { CELL_ITEMS = fit; draw(); }
+  const todayCount = data.tasks.filter((t) => t.due_date === today && t.status !== 'done').length;
+  $('#sum-cal').textContent = todayCount ? `오늘 할 일 ${todayCount}` : '';
+  renderDayPanel();
+}
+
+function renderCalCell(day, lanes, { today, month, selected }) {
+  const items = calItemsOn(day);
+  const wd = weekdayOf(day);
+  const lines = [];
+  // 계획 띠: 이 칸에 없는 계획 줄은 빈 자리로 남겨 옆 칸 띠와 높이를 맞춘다. 이름은 시작일이나 그 주 첫 칸에만 쓴다.
+  // 칸이 낮으면(휴대폰) 계획 띠를 글자 없는 얇은 줄로 그려 할 일 자리를 남긴다
+  const thin = CELL_ITEMS <= 2;
+  const bars = [];
+  let lastLane = -1;
+  lanes.forEach((p, i) => { if (p.start_date <= day && p.end_date >= day) lastLane = i; });
+  for (let i = 0; i <= lastLane && bars.length < (thin ? 3 : CELL_ITEMS - 1); i++) {
+    const p = lanes[i];
+    const on = p.start_date <= day && p.end_date >= day;
+    if (!on) { bars.push(el('span', { class: `bar-gap${thin ? ' thin' : ''}`, 'aria-hidden': 'true' })); continue; }
+    const head = !thin && (p.start_date === day || wd === 0);
+    bars.push(el('span', {
+      class: `pbar ${planColor(p.id)}${thin ? ' thin' : ''}${p.start_date === day ? ' s' : ''}${p.end_date === day ? ' e' : ''}`,
+      'aria-hidden': 'true', text: head ? p.title : '\u00a0',
+    }));
+  }
+  if (thin && bars.length) lines.push(el('span', { class: 'thin-bars', 'aria-hidden': 'true' }, bars));
+  else lines.push(...bars);
+  const room = Math.max(CELL_ITEMS - (thin ? 0 : bars.length), 1);
+  const tasks = items.tasks;
+  const shown = tasks.slice(0, room);
+  for (const t of shown) {
+    lines.push(el('span', { class: `chip ${planColor(t.plan_id)}${t.status === 'done' ? ' done' : ''}${t.overdue ? ' late' : ''}`, 'aria-hidden': 'true', dataset: { task: t.id }, title: '끌어서 다른 날로 옮기기', text: t.title }));
+  }
+  // 넘친 할 일 수("+n")와 실행 기록 시간은 칸 맨 아래 한 줄에 둔다
+  const more = tasks.length - shown.length;
+  const logMin = items.logs.reduce((s, l) => s + l.actual_minutes, 0);
+  const foot = more || items.logs.length || items.exp
+    ? el('span', { class: 'cell-foot', 'aria-hidden': 'true' },
+      more ? el('span', { class: 'more', text: `+${more}` }) : null,
+      items.logs.length ? el('span', { class: 'logmark', text: hm(logMin) }) : null,
+      items.exp ? el('span', { class: 'expmark', text: `Ⅳ${items.exp.value ?? '–'}` }) : null)
+    : null;
+
+  const left = tasks.filter((t) => t.status !== 'done').length;
+  const label = [
+    `${Number(day.slice(5, 7))}월 ${Number(day.slice(8))}일 ${WEEKDAYS[wd]}요일`,
+    day === today ? '오늘' : '',
+    tasks.length ? `할 일 ${tasks.length}개${left ? `(남은 것 ${left})` : ''}` : '',
+    items.logs.length ? `실행 기록 ${items.logs.length}건` : '',
+  ].filter(Boolean).join(', ');
+  const cls = ['cell', wd === 0 ? 'sun' : wd === 6 ? 'sat' : '', day.slice(0, 7) !== month ? 'out' : '',
+    day === today ? 'today' : '', day === selected ? 'sel' : ''].filter(Boolean).join(' ');
+  return el('button', {
+    type: 'button', class: cls, dataset: { date: day }, 'aria-label': label, 'aria-pressed': day === selected ? 'true' : 'false',
+    onclick: () => { if (!calDrag.suppressClick) selectDay(day); calDrag.suppressClick = false; },
+  }, el('span', { class: 'dnum', text: String(Number(day.slice(8))) }), el('span', { class: 'lines' }, lines), foot);
+}
+
+function selectDay(day) {
+  const month = day.slice(0, 7);
+  state.cal.selected = day;
+  if (month !== state.cal.month) {
+    state.cal.month = month;
+    loadCal().catch(fail);
+    return;
+  }
+  for (const c of document.querySelectorAll('#cal-grid .cell')) {
+    const on = c.dataset.date === day;
+    c.classList.toggle('sel', on);
+    c.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  $('#cal-today').disabled = day === state.cal.data.today_seoul;
+  renderDayPanel();
+}
+
+function gotoMonth(n) {
+  const month = shiftMonth(state.cal.month, n);
+  state.cal.month = month;
+  // 옮긴 달에 오늘이 있으면 오늘, 없으면 1일을 고른다
+  const today = state.cal.data ? state.cal.data.today_seoul : seoulToday();
+  state.cal.selected = today.startsWith(month) ? today : `${month}-01`;
+  loadCal().catch(fail);
+}
+
+// 고른 날에 할 일을 넣을 계획: 그날이 기간 안에 드는 계획 → 지금 고른 계획 → 첫 계획
+function planForDay(day) {
+  const covering = state.cal.data.plans.find((p) => p.start_date <= day && p.end_date >= day);
+  return covering ? covering.id : state.plan ? state.plan.id : null;
+}
+
+async function openTaskInDo(t) {
+  if (!state.plan || state.plan.id !== t.plan_id) {
+    $('#plan-select').value = String(t.plan_id);
+    await selectPlan(t.plan_id);
+  }
+  location.hash = `#task-${t.id}`;
+}
+
+function renderDayPanel() {
+  const day = state.cal.selected;
+  const today = state.cal.data.today_seoul;
+  const items = calItemsOn(day);
+  const diff = daysBetween(today, day);
+  const rel = diff === 0 ? '오늘' : diff === 1 ? '내일' : diff === -1 ? '어제' : diff > 0 ? `${diff}일 뒤` : `${-diff}일 전`;
+  $('#day-title').textContent = `${Number(day.slice(5, 7))}월 ${Number(day.slice(8))}일 (${WEEKDAYS[weekdayOf(day)]}) · ${rel}`;
+  const noPlan = state.plans.length === 0;
+  for (const id of ['#day-add-task', '#cal-fab']) {
+    $(id).disabled = noPlan;
+    $(id).title = noPlan ? '먼저 "Ⅰ 계획"에서 계획을 하나 만들어 주세요' : '';
+  }
+
+  const parts = [];
+  if (items.plans.length) {
+    parts.push(el('ul', { class: 'day-plans' }, items.plans.map((p) => {
+      const n = daysBetween(p.start_date, day) + 1;
+      const total = daysBetween(p.start_date, p.end_date) + 1;
+      return el('li', {}, el('button', {
+        type: 'button', class: `plan-chip ${planColor(p.id)}`,
+        onclick: async () => {
+          $('#plan-select').value = String(p.id);
+          await selectPlan(p.id).catch(fail);
+          location.hash = '#plan';
+        },
+      }, el('i', { 'aria-hidden': 'true' }), el('span', { text: p.title }), el('small', { text: ` ${n}/${total}일째` })));
+    })));
+  }
+
+  parts.push(el('h4', { text: `할 일 ${items.tasks.length}개` }));
+  if (items.tasks.length) {
+    parts.push(el('ul', { class: 'day-tasks' }, items.tasks.map((t) => renderDayTask(t, day))));
+  } else {
+    parts.push(el('p', { class: 'hint', text: noPlan ? '아직 계획이 없습니다. "Ⅰ 계획"에서 계획을 먼저 만들면 여기서 할 일을 넣을 수 있습니다.' : '이날 마감인 할 일이 없습니다. "+ 할 일"로 넣어 보세요.' }));
+  }
+
+  if (items.logs.length) {
+    const sum = items.logs.reduce((s, l) => s + l.actual_minutes, 0);
+    parts.push(el('h4', { text: `실행 기록 ${items.logs.length}건 · ${hm(sum)}` }),
+      el('ol', { class: 'log-list' }, items.logs.map((l) => el('li', { class: `log${l.blocked_reason.trim() ? ' blocked' : ''}` },
+        el('div', { class: 'log-main' },
+          el('span', { class: 'when', text: `${seoulTime.format(new Date(l.started_at))}~${seoulTime.format(new Date(l.ended_at))}` }),
+          el('strong', { text: `${l.task_title} · ${hm(l.actual_minutes)}` })),
+        l.blocked_reason.trim() ? el('p', { class: 'why' }, '막힌 이유 · ', l.blocked_reason) : null,
+        l.note ? el('p', { class: 'note', text: l.note }) : null))));
+  }
+  if (items.exp) {
+    const x = items.exp;
+    parts.push(el('p', { class: 'carry' }, el('strong', { text: `5일 기록 ${x.day_no}일차 ` }),
+      `${x.metric}: ${x.value === null ? '빠짐' : `${x.value}${x.unit}`}${x.note ? ` · ${x.note}` : ''}`));
+  }
+  $('#day-body').replaceChildren(...parts);
+}
+
+function renderDayTask(t, day) {
+  const done = t.status === 'done';
+  const check = el('button', {
+    type: 'button', class: `check${done ? ' on' : ''}`, dataset: { key: newKey() },
+    'aria-label': done ? `"${t.title}" 진행 중으로 되돌리기` : `"${t.title}" 완료`,
+    onclick: (e) => (done ? reopenTask(t, e.currentTarget) : completeTask(t, e.currentTarget)),
+  }, el('span', { class: 'tick', 'aria-hidden': 'true', text: '✓' }));
+  const logBox = el('div', { class: 'day-log', hidden: true });
+  return el('li', { class: `day-task ${planColor(t.plan_id)}${done ? ' done' : ''}${t.overdue ? ' overdue' : ''}`, id: `cal-task-${t.id}` },
+    el('div', { class: 'task-row' },
+      check,
+      el('button', { type: 'button', class: 'day-task-title', onclick: () => openTaskInDo(t).catch(fail) },
+        el('span', { class: 'name', text: t.title }),
+        el('span', { class: 'meta' },
+          el('span', { class: `prio p${t.priority}`, text: PRIORITY[t.priority] }),
+          el('span', { text: `예상 ${hm(t.estimated_minutes)}` }),
+          t.overdue ? el('span', { class: 'late', text: '지연' }) : null,
+          ...t.tags.map((g) => el('span', { class: 'tag', text: `#${g}` })))),
+      el('button', {
+        type: 'button', class: 'btn ghost small', 'aria-expanded': 'false', text: '기록',
+        onclick: (e) => {
+          const open = logBox.hidden;
+          if (open && !logBox.firstChild) logBox.append(renderLogForm(t, day));
+          logBox.hidden = !open;
+          e.currentTarget.setAttribute('aria-expanded', open ? 'true' : 'false');
+        },
+      })),
+    logBox);
+}
+
+function bindCal() {
+  $('#cal-prev').addEventListener('click', () => gotoMonth(-1));
+  $('#cal-next').addEventListener('click', () => gotoMonth(1));
+  $('#cal-today').addEventListener('click', () => selectDay(state.cal.data ? state.cal.data.today_seoul : seoulToday()));
+  const addOnDay = () => {
+    const day = state.cal.selected;
+    openTaskForm(null, { due_date: day, plan_id: planForDay(day) });
+  };
+  $('#day-add-task').addEventListener('click', addOnDay);
+  $('#cal-fab').addEventListener('click', addOnDay);
+  bindCalDrag();
+  window.addEventListener('resize', debounce(() => { if (document.body.classList.contains('cal-mode') && state.cal && state.cal.data) renderCal(); }, 150));
+}
+
+// ---------- 달력 끌기 (네이버 캘린더처럼) ----------
+// 마우스: 여러 날을 누른 채 끌면 그 기간으로 새 일정(계획) 창이 열린다. 할 일 줄을 끌어 다른 날에 놓으면 마감일이 옮겨진다.
+// 휴대폰: 날짜를 꾹 누른 채(0.4초) 끌면 같은 동작. 꾹 누르고 바로 떼면 그날 할 일 추가. 옆으로 밀면 이전·다음 달.
+const calDrag = { suppressClick: false, g: null };
+
+function cellAt(x, y) {
+  const node = document.elementFromPoint(x, y);
+  return node && node.closest ? node.closest('#cal-grid .cell') : null;
+}
+
+function markRange(a, b) {
+  const [lo, hi] = a <= b ? [a, b] : [b, a];
+  for (const c of document.querySelectorAll('#cal-grid .cell')) {
+    c.classList.toggle('range', c.dataset.date >= lo && c.dataset.date <= hi);
+  }
+}
+
+function markDrop(day) {
+  for (const c of document.querySelectorAll('#cal-grid .cell')) c.classList.toggle('drop', c.dataset.date === day);
+}
+
+function clearDragMarks() {
+  for (const c of document.querySelectorAll('#cal-grid .cell.range, #cal-grid .cell.drop')) c.classList.remove('range', 'drop');
+  document.body.classList.remove('dragging');
+}
+
+async function moveTask(taskId, day) {
+  const t = state.cal.data.tasks.find((x) => x.id === taskId);
+  if (!t || t.due_date === day) return;
+  try {
+    await api('PATCH', `/api/tasks/${taskId}`, { due_date: day });
+    say(`"${t.title}"의 마감일을 ${fmtDate(day)}(으)로 옮겼습니다.`);
+    state.cal.selected = day;
+    await refreshDoSee();
+  } catch (err) { fail(err); }
+}
+
+function bindCalDrag() {
+  const grid = $('#cal-grid');
+  grid.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const cell = e.target.closest('.cell');
+    if (!cell) return;
+    const chip = e.target.closest('.chip[data-task]');
+    const g = {
+      id: e.pointerId, touch: e.pointerType !== 'mouse', x: e.clientX, y: e.clientY,
+      start: cell.dataset.date, end: cell.dataset.date,
+      task: chip ? Number(chip.dataset.task) : null, mode: 'pending', timer: null,
+    };
+    if (g.touch) {
+      g.timer = setTimeout(() => {
+        g.mode = g.task ? 'move' : 'range';
+        if (navigator.vibrate) navigator.vibrate(15);
+        document.body.classList.add('dragging');
+        if (g.mode === 'range') markRange(g.start, g.end); else markDrop(g.end);
+      }, 400);
+    }
+    calDrag.g = g;
+  });
+  grid.addEventListener('pointermove', (e) => {
+    const g = calDrag.g;
+    if (!g || g.id !== e.pointerId) return;
+    const dx = e.clientX - g.x;
+    const dy = e.clientY - g.y;
+    if (g.mode === 'pending') {
+      if (Math.hypot(dx, dy) < 8) return;
+      if (g.touch) { clearTimeout(g.timer); g.mode = 'swipe'; return; }
+      // 마우스는 다른 날 칸으로 넘어가야 끌기로 본다 (누르다 살짝 흔들린 것은 그냥 클릭)
+      const over = cellAt(e.clientX, e.clientY);
+      if (!over || over.dataset.date === g.start) return;
+      g.mode = g.task ? 'move' : 'range';
+      document.body.classList.add('dragging');
+    }
+    if (g.mode === 'swipe') return;
+    const cell = cellAt(e.clientX, e.clientY);
+    if (!cell) return;
+    g.end = cell.dataset.date;
+    if (g.mode === 'range') markRange(g.start, g.end); else markDrop(g.end);
+  });
+  const finish = (e, cancelled) => {
+    const g = calDrag.g;
+    if (!g || g.id !== e.pointerId) return;
+    calDrag.g = null;
+    clearTimeout(g.timer);
+    clearDragMarks();
+    if (cancelled || g.mode === 'pending') return; // 그냥 누른 것은 click이 날짜를 고른다
+    calDrag.suppressClick = true;
+    setTimeout(() => { calDrag.suppressClick = false; }, 0);
+    if (g.mode === 'swipe') {
+      const dx = e.clientX - g.x;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(e.clientY - g.y) * 1.5) gotoMonth(dx < 0 ? 1 : -1);
+    } else if (g.mode === 'move') {
+      moveTask(g.task, g.end);
+    } else if (g.start === g.end) {
+      // 꾹 눌렀다 뗀 날 → 그날 할 일 추가
+      selectDay(g.start);
+      if (state.plans.length) openTaskForm(null, { due_date: g.start, plan_id: planForDay(g.start) });
+    } else {
+      const [a, b] = g.start <= g.end ? [g.start, g.end] : [g.end, g.start];
+      openPlanForm('new', null, { start_date: a, end_date: b });
+    }
+  };
+  grid.addEventListener('pointerup', (e) => finish(e, false));
+  grid.addEventListener('pointercancel', (e) => finish(e, true));
+  // 휴대폰에서 꾹 누를 때 뜨는 메뉴를 막는다
+  grid.addEventListener('contextmenu', (e) => { if (calDrag.g && calDrag.g.touch) e.preventDefault(); });
+}
+
 // ---------- 시작 ----------
 function debounce(fn, ms) {
   let t;
@@ -1050,6 +1469,7 @@ async function init() {
     e.preventDefault();
     jumpTo(a.dataset.jump);
   });
+  bindCal();
   await Promise.all([loadPlans(), loadExp()]);
   const hash = location.hash.slice(1);
   if (/^(task|log)-\d+$/.test(hash)) jumpTo(hash);
