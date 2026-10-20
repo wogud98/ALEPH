@@ -37,17 +37,6 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
-function gearIcon(cls = 'gear') {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('class', cls);
-  svg.setAttribute('aria-hidden', 'true');
-  const use = document.createElementNS(ns, 'use');
-  use.setAttribute('href', '#gear');
-  svg.append(use);
-  return svg;
-}
-
 function newKey() {
   if (crypto.randomUUID) return crypto.randomUUID().replace(/-/g, '');
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
@@ -216,8 +205,7 @@ function renderPlan() {
       field('기간', `${p.start_date} ~ ${p.end_date}`),
       field('우선순위', PRIORITY[p.priority], `prio p${p.priority}`),
       field('예상 시간', fmtMin(p.estimated_minutes))),
-    el('div', { class: 'criteria' }, el('span', { class: 'label', text: '성공 기준' }), el('p', { text: p.success_criteria })),
-    gearIcon('gear corner'));
+    el('div', { class: 'criteria' }, el('span', { class: 'label', text: '성공 기준' }), el('p', { text: p.success_criteria })));
   $('#plan-view').replaceChildren(card);
   renderHistory();
   renderSummaries();
