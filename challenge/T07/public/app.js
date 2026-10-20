@@ -222,7 +222,7 @@ const REV_FIELDS = [
 
 function renderHistory() {
   const revs = state.plan.revisions;
-  $('#history-count').textContent = `${revs.length}판`;
+  $('#history-count').textContent = `(${revs.length})`;
   const head = el('tr', {}, el('th', { text: '판' }), el('th', { text: '저장' }),
     ...REV_FIELDS.map(([, l]) => el('th', { text: l })), el('th', { text: '고친 이유' }));
   const rows = revs.map((r, i) => {
@@ -733,7 +733,7 @@ async function loadRetros() {
       r.went_wrong ? el('p', {}, el('span', { class: 'label', text: '빗나간 점 ' }), r.went_wrong) : null,
       el('p', { class: 'carry' }, el('strong', { text: '고칠 점 ' }), r.improvement),
       r.carried_to_plan_id
-        ? el('p', { class: 'hint' }, '→ ', el('a', { href: `?plan=${r.carried_to_plan_id}#plan`, text: `계획 #${r.carried_to_plan_id}(으)로 넘어갔습니다` }))
+        ? el('p', { class: 'hint' }, el('a', { href: `?plan=${r.carried_to_plan_id}#plan`, text: `계획 #${r.carried_to_plan_id}로 이동 →` }))
         : el('button', { type: 'button', class: 'btn primary small', onclick: () => openPlanForm('new', r), text: '이 고칠 점으로 다음 계획 만들기' }));
   }));
 }
