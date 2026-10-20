@@ -261,6 +261,56 @@ test('달력: 첫 화면은 이번 달 달력, 날짜를 누르면 그날 할 �
   assert.match(await page.textContent('#day-title'), /오늘/);
 });
 
+test('달력 한 화면: 스크롤 없이 달력과 고른 날 목록이 한 화면에 들어간다', opts, async () => {
+  await page.goto(S.base + '/app#cal');
+  await page.locator('#cal-grid .cell').first().waitFor();
+  const m = await page.evaluate(() => ({
+    page: document.scrollingElement.scrollHeight, win: innerHeight,
+    grid: document.querySelector('#cal-grid').getBoundingClientRect().bottom,
+    panel: document.querySelector('#day-panel').getBoundingClientRect().bottom,
+  }));
+  assert.ok(m.page <= m.win, `페이지가 화면보다 길지 않다 (${m.page} <= ${m.win})`);
+  assert.ok(m.grid <= m.win && m.panel <= m.win, '달력과 목록이 화면 안에 있다');
+});
+
+async function dragBetween(from, to) {
+  const a = await from.boundingBox();
+  const b = await to.boundingBox();
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2 + 12, a.y + a.height / 2, { steps: 3 });
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 });
+  await page.mouse.up();
+}
+
+test('달력 끌기: 여러 날을 끌면 그 기간으로 새 일정(계획)이 생기고, 할 일을 끌면 마감일이 옮겨진다', opts, async () => {
+  await page.goto(S.base + '/app#cal');
+  await page.locator('#cal-grid .cell').first().waitFor();
+  const dates = await page.locator('#cal-grid .cell').evaluateAll((cs) => cs.map((c) => c.dataset.date));
+  const [d1, d2] = [dates[8], dates[10]];
+  await dragBetween(page.locator(`#cal-grid .cell[data-date="${d2}"] .dnum`), page.locator(`#cal-grid .cell[data-date="${d1}"] .dnum`));
+  await page.locator('#plan-dialog[open]').waitFor();
+  assert.equal(await page.inputValue('#plan-form [name=start_date]'), d1, '거꾸로 끌어도 이른 날이 시작일');
+  assert.equal(await page.inputValue('#plan-form [name=end_date]'), d2);
+  await page.fill('#plan-form [name=title]', '끌어서 만든 일정');
+  await page.fill('#plan-form [name=success_criteria]', '달력에서 바로');
+  await page.click('#plan-form [type=submit]');
+  await page.locator('#cal-grid .pbar', { hasText: '끌어서 만든 일정' }).first().waitFor();
+  assert.equal(await page.locator('a.step[data-view=cal]').getAttribute('aria-current'), 'page', '만든 뒤에도 달력에 머문다');
+  const p = (await S.pool.query("select start_date, end_date from plans where title = '끌어서 만든 일정'")).rows;
+  assert.deepEqual(p, [{ start_date: d1, end_date: d2 }]);
+
+  const [from, to] = [dates[15], dates[17]];
+  await S.call('POST', `/api/plans/${planId}/tasks`, { title: '옮길 할 일', due_date: from });
+  await page.goto(S.base + '/app#cal');
+  const chip = page.locator(`#cal-grid .cell[data-date="${from}"] .chip`, { hasText: '옮길 할 일' });
+  await chip.waitFor();
+  await dragBetween(chip, page.locator(`#cal-grid .cell[data-date="${to}"] .dnum`));
+  await page.locator(`#cal-grid .cell[data-date="${to}"] .chip`, { hasText: '옮길 할 일' }).waitFor();
+  const t = (await S.pool.query("select due_date from tasks where title = '옮길 할 일'")).rows;
+  assert.deepEqual(t, [{ due_date: to }]);
+});
+
 test('비밀번호 찾기: 가입하면 복구 코드를 한 번 보여 주고, 그 코드로 새 비밀번호를 정해 들어간다', opts, async () => {
   const ctx = await browser.newContext();
   const p = await ctx.newPage();

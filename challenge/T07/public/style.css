@@ -453,5 +453,77 @@ dialog h3 { font-size: 1.2rem; }
     font-size: 2rem; line-height: 1; box-shadow: 0 6px 18px rgba(42, 32, 23, .35);
   }
   .fab:disabled { display: none; }
-  #cal { padding-bottom: 72px; }
+  body:not(.cal-mode) #cal { padding-bottom: 72px; }
+}
+
+/* ---------- 달력 한 화면 (스크롤 없이) ----------
+   달력 탭에서는 머리를 한 줄로 줄이고, 남은 높이를 달력과 고른 날 목록이 나눠 쓴다.
+   넓은 화면: 왼쪽 달력 | 오른쪽 목록. 좁은 화면: 위 달력 | 아래 목록(목록만 안에서 스크롤). */
+.cell.range { background: color-mix(in srgb, var(--brass) 22%, transparent); }
+.cell.drop { box-shadow: inset 0 0 0 2px var(--verdigris); background: color-mix(in srgb, var(--verdigris) 15%, transparent); }
+.chip[data-task] { cursor: grab; }
+body.dragging, body.dragging * { cursor: grabbing !important; user-select: none; }
+.cal-hint { font-size: .78rem; color: var(--ink-2); margin: 0 0 0 4px; }
+
+body.cal-mode { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+body.cal-mode .masthead { flex: none; padding-top: 8px; }
+body.cal-mode .sub, body.cal-mode #import-note, body.cal-mode .foot, body.cal-mode .step-sub { display: none; }
+body.cal-mode .brand h1 { font-size: 1.15rem; }
+body.cal-mode .gears { transform: scale(.7); transform-origin: left center; width: 40px; height: 34px; }
+body.cal-mode .notice { margin-top: 6px; padding: 3px 10px; font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+body.cal-mode .notice .seal { display: inline-grid; width: 16px; height: 16px; font-size: .6rem; vertical-align: -3px; margin-right: 6px; }
+body.cal-mode .notice > span:last-child { display: inline; }
+body.cal-mode .steps { margin-top: 6px; padding-bottom: 6px; }
+body.cal-mode .step { padding: 4px 10px; }
+body.cal-mode .step .num { width: 26px; height: 26px; font-size: .8rem; grid-row: auto; }
+body.cal-mode main { flex: 1; min-height: 0; padding-bottom: 0; }
+body.cal-mode main > .status { position: fixed; }
+body.cal-mode #cal { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 330px; grid-template-rows: auto minmax(0, 1fr) auto; gap: 0 14px; padding: 6px 0 10px; }
+body.cal-mode .wrap { max-width: 1200px; }
+body.cal-mode .cal-head { grid-column: 1; grid-row: 1; margin: 0 0 6px; }
+body.cal-mode .cal { grid-column: 1; grid-row: 2; grid-template-rows: auto repeat(var(--weeks, 6), minmax(0, 1fr)); min-height: 0; }
+body.cal-mode .cell { min-height: 0; overflow: hidden; }
+body.cal-mode .cal-legend { grid-column: 1; grid-row: 3; margin-top: 4px; }
+body.cal-mode .day-panel { grid-column: 2; grid-row: 1 / 4; margin: 0; overflow-y: auto; overscroll-behavior: contain; }
+.cal { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+body.cal-mode .cal { touch-action: none; }
+
+@media (max-width: 900px) {
+  body.cal-mode #cal { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 58fr) auto minmax(0, 42fr); }
+  body.cal-mode .day-panel { grid-column: 1; grid-row: 4; margin-top: 6px; padding: 10px 12px; }
+  body.cal-mode .cal-legend { margin: 4px 2px 0; font-size: .74rem; }
+}
+@media (max-width: 640px) {
+  body.cal-mode .mast-inner { flex-wrap: nowrap; gap: 8px; }
+  body.cal-mode .plan-pick { display: none; }
+  body.cal-mode .who { flex-wrap: nowrap; gap: 4px; font-size: .8rem; }
+  body.cal-mode .who .btn.small { min-height: 30px; padding: 2px 8px; font-size: .8rem; }
+  body.cal-mode .brand h1 { font-size: 1rem; white-space: nowrap; }
+  body.cal-mode .brand { gap: 4px; min-width: 0; }
+  body.cal-mode .gears { width: 32px; height: 28px; transform: scale(.6); }
+  body.cal-mode .step { padding: 3px 2px; grid-template-columns: auto; }
+  body.cal-mode .step .num { display: none; }
+  body.cal-mode .step-name { font-size: .78rem; }
+  body.cal-mode .cal-head { margin-bottom: 4px; }
+  body.cal-mode .cal-nav { width: 34px; height: 34px; font-size: 1.2rem; }
+  body.cal-mode .cal-title { font-size: 1.1rem; }
+  body.cal-mode .wd { padding: 3px 0; }
+  body.cal-mode .dnum { width: 20px; height: 20px; font-size: .74rem; }
+  body.cal-mode .day-panel h3 { font-size: 1rem; }
+  body.cal-mode .day-task-title { padding: 6px 4px 6px 0; }
+  body.cal-mode #cal { padding-bottom: 6px; }
+  body.cal-mode .fab { bottom: 16px; }
+}
+body.cal-mode main { width: 100%; }
+.thin-bars { display: grid; gap: 1px; }
+.pbar.thin, .bar-gap.thin { height: 4px; line-height: 4px; font-size: 0; padding: 0; }
+@media (max-width: 640px) {
+  body.cal-mode #cal { grid-template-rows: auto minmax(0, 60fr) auto minmax(0, 40fr); }
+  body.cal-mode .cal-legend { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  body.cal-mode .notice .seal { width: 14px; height: 14px; }
+}
+@media (max-width: 640px) {
+  body.cal-mode .day-plans { margin-top: 6px; gap: 4px; }
+  body.cal-mode .plan-chip { padding: 1px 8px; font-size: .8rem; }
+  body.cal-mode .day-panel h4 { margin: 8px 0 4px; }
 }
