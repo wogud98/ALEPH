@@ -3,7 +3,7 @@
 T06 다이어리(`challenge/T06`, 배포 https://aleph-t06-pds.onrender.com, 이어 붙인 T06 커밋 `4b1fa1a`)에 가입·로그인·로그아웃과 "주인 확인"을 붙인 판입니다. 첫 화면은 로그인 화면이고, 계획·할 일·실행 기록·돌아보기·5일 기록은 로그인한 본인에게만 나옵니다.
 
 - 결과물: https://aleph-07-pds.onrender.com
-- 소스: https://github.com/wogud98/ALEPH/tree/2e23c972c399c8b187c54433ddc5bf7c3049aa13/challenge/T07
+- 소스: https://github.com/wogud98/ALEPH/tree/2f83e2f340611f70d35e3950724ecf3b9c99563f/challenge/T07
 
 ## 무엇으로 붙였나
 
@@ -53,7 +53,7 @@ node scripts/evidence.js https://<배포 주소> > evidence.md       # DATABASE_
 
 1. Render에서 **New → Web Service**로 이 저장소를 고르고 Root Directory `challenge/T07`, Build `npm ci --omit=dev`, Start `npm start`로 만듭니다. 환경 변수는 `DATABASE_URL`(aleph-t06-db의 **Internal Database URL**, `postgresql://`로 시작), `DB_SCHEMA=t07`, `COOKIE_SECURE=1`, `NODE_VERSION=22`, `T06_OWNER_USERNAME`(내가 쓸 아이디)입니다. 지금 떠 있는 T06 서비스가 Blueprint에 묶여 있지 않아서, `render.yaml`로 동기화하면 이름 뒤에 `-xxxx`가 붙은 중복 서비스와 DB가 새로 생기므로 쓰지 않았습니다.
 2. T07은 T06과 같은 무료 PostgreSQL(`aleph-t06-db`)을 쓰고 표는 `t07` 스키마에 둡니다. T06 서버는 `public` 스키마만 보므로 T07 자료를 읽을 수 없습니다.
-3. 결과물 주소에서 `T06_OWNER_USERNAME`과 같은 아이디로 가입하면, 그 순간 T06 자료가 이 계정으로 한 번 옮겨집니다 (화면 위에 "T06 다이어리 자료를 이 계정으로 옮겨 왔습니다"가 보임).
+3. 결과물 주소에서 `T06_OWNER_USERNAME`과 같은 아이디로 가입하면, 그 순간 T06 자료가 이 계정으로 한 번 옮겨집니다 ("계정" 창에 "T06 다이어리 자료를 이 계정으로 옮겨 왔습니다"가 보임).
 
 무료 요금제 주의: 웹 서비스는 15분 동안 접속이 없으면 잠들어 첫 접속이 1분쯤 걸립니다. 무료 PostgreSQL은 만든 날부터 30일 뒤 만료되므로 그 전에 "내보내기"로 파일을 받아 둡니다.
 
