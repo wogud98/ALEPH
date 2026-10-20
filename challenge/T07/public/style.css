@@ -27,11 +27,11 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper: #000000;
-    --paper-2: #1c1c1e;
-    --card: #161617;
+    --paper-2: #2c2c2e;
+    --card: #1c1c1e;
     --ink: #f5f5f7;
     --ink-2: #98989d;
-    --line: #2c2c2e;
+    --line: #38383a;
     --brass: #2997ff;
     --brass-hi: #2997ff;
     --brass-ink: #ffffff;
@@ -39,11 +39,11 @@
     --verdigris: #30d158;
     --rust: #ff453a;
     --flash: #3a3000;
-    --shadow: none;
+    --shadow: 0 0 0 1px #38383a; /* 어두울 때는 그림자 대신 얇은 테두리로 배경과 나눈다 */
     --sat: #64a8ff;
     --pc0: #0a84ff; --pc1: #30d158; --pc2: #ff9f0a; --pc3: #bf5af2; --pc4: #ff375f; --pc5: #40c8e0;
     --pc-ink: #ffffff;
-    --glass: rgba(22, 22, 23, .78);
+    --glass: rgba(28, 28, 30, .78);
     color-scheme: dark;
   }
 }
@@ -83,6 +83,7 @@ p { margin: 6px 0; }
 .mast-inner { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand h1 { font-size: 1.3rem; font-weight: 700; }
+.home-link { color: inherit; text-decoration: none !important; }
 .sub { margin: 0; color: var(--ink-2); font-size: .95rem; }
 @media (prefers-reduced-motion: reduce) {
   .flash { animation: none !important; outline: 2px solid var(--brass); }
