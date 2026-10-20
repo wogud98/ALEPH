@@ -27,11 +27,12 @@ T06 다이어리(`challenge/T06`, 배포 https://aleph-t06-pds.onrender.com, 이
 | `src/db.js` | 접속마다 `search_path=t07`, 시작할 때 `create schema t07` |
 | `db/schema.sql` | `users`, `sessions`, `plans.owner_id`, `t06_imports`, `experiments`, `experiment_days`, `experiment_rule_changes` |
 | `public/login.html`, `public/login.js` (새 파일) | 로그인·가입 화면 |
-| `public/index.html`, `public/app.js` | 아이디·로그아웃·계정(비밀번호 바꾸기, 계정 지우기), "Ⅳ 5일 기록" 탭, 401이면 로그인 화면으로 |
+| `public/index.html`, `public/app.js` | 아이디·로그아웃·계정(비밀번호 바꾸기, 계정 지우기), "5일 기록" 탭, 401이면 로그인 화면으로 |
 | `scripts/reset-password.js` (새 파일) | 복구 코드도 없을 때 운영자가 DB에 붙어 임시 비밀번호를 정함 (모든 로그인 끊김) |
 | `scripts/evidence.js` (새 파일) | 실제 서버에 요청을 보내 "막히는 장면" 기록(Markdown)을 만듦. 비밀번호·세션 값은 가림 |
 | `src/calendar.js` (새 파일), `GET /api/calendar?from=&to=` | 달력: 내 모든 계획의 기간·할 일 마감·실행 기록(시작한 서울 날짜)·5일 기록을 한 기간(최대 62일)에 모아 돌려줌 |
 | `public/index.html`, `public/app.js`, `public/style.css` (달력) | 첫 화면을 "달력"으로. 네이버 캘린더처럼 한 달 칸에 계획 기간은 색 띠, 할 일은 칸 안 줄로 보이고(일요일 시작, 일=빨강·토=파랑), 날짜를 누르면 아래에 그날 할 일(완료·실행 기록)과 기록이 나옴. "+ 할 일"(휴대폰은 오른쪽 아래 + 버튼)은 고른 날짜를 마감일로, 그날이 기간에 드는 계획에 넣음. 휴대폰에서 옆으로 밀면 달이 넘어감. 달력 탭은 스크롤 없이 한 화면(넓은 화면은 왼쪽 달력·오른쪽 목록, 휴대폰은 위 달력·아래 목록). 여러 날을 끌면(휴대폰은 꾹 누른 뒤 끌면) 그 기간으로 새 일정(계획), 할 일 줄을 끌어 다른 날에 놓으면 마감일이 옮겨짐 |
+| `public/style.css`, `public/index.html`, `public/login.html` (모양) | 애플 시스템 화면처럼 정리: 시스템 글꼴(산세리프)·흰 카드·파란 강조색·반투명 머리 막대, 단계 탭은 번호 없는 세그먼트 컨트롤. 톱니·양피지·명조 글꼴(구글 폰트) 뺌. "나만 볼 수 있습니다" 안내는 맨 아래 작은 글씨로, T06 자료 옮김 안내는 "계정" 창으로 옮김 |
 | `seed/`, `src/seed.js` | 뺐음 (T06 자료는 `import-t06.js`로 옮김) |
 
 ## 실행
