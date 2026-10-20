@@ -527,3 +527,8 @@ body.cal-mode main { width: 100%; }
   body.cal-mode .plan-chip { padding: 1px 8px; font-size: .8rem; }
   body.cal-mode .day-panel h4 { margin: 8px 0 4px; }
 }
+@media (max-width: 640px) {
+  /* 휴대폰: "+n"·기록 시간은 날짜 옆 오른쪽 위에 둬서 칸 높이를 아낀다 */
+  body.cal-mode .cell-foot { position: absolute; top: 2px; right: 2px; margin: 0; flex-direction: column; align-items: flex-end; line-height: 1.15; }
+  body.cal-mode .cell-foot .logmark::before { content: ""; }
+}

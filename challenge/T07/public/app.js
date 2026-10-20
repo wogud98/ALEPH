@@ -1008,7 +1008,7 @@ function measureCellItems(weeks) {
   if (!h || h < 0) return 4;
   const small = matchMedia('(max-width: 640px)').matches;
   const lineH = small ? 15 : 18;
-  const fixed = small ? 26 : 32; // 날짜 동그라미 + 아래 기록 줄
+  const fixed = small ? 30 : 32; // 날짜 동그라미 + 얇은 계획 띠 + 아래 기록 줄
   return Math.max(1, Math.min(6, Math.floor((h / weeks - fixed) / lineH)));
 }
 
