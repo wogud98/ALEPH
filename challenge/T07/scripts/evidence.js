@@ -27,7 +27,8 @@ const maskTok = (t) => (t ? `${t.slice(0, 4)}…(가림)` : t);
 function maskText(s) {
   return String(s)
     .split(PW).join('********')
-    .replace(/pds_sid=([A-Za-z0-9_-]{4})[A-Za-z0-9_-]{39}/g, 'pds_sid=$1…(가림)');
+    .replace(/pds_sid=([A-Za-z0-9_-]{4})[A-Za-z0-9_-]{39}/g, 'pds_sid=$1…(가림)')
+    .replace(/"recovery_code":"([A-Z0-9]{5})(-[A-Z0-9]{5}){3}"/g, '"recovery_code":"$1-…(가림)"');
 }
 
 function browser(name) {
