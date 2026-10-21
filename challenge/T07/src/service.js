@@ -505,6 +505,19 @@ async function listRetros(pool, uid, planId) {
 
 // ---------- 내보내기 ----------
 // 로그인한 사람의 자료만 파일 하나(JSON)로 묶는다. 비밀번호 해시·세션은 넣지 않는다.
+// 자동완성: 내가 전에 쓴 할 일 이름(최근 순)과 태그(많이 쓴 순). 지운 할 일은 뺀다.
+async function suggestions(pool, uid) {
+  const titles = await pool.query(
+    `select t.title from tasks t join plans p on p.id = t.plan_id
+      where p.owner_id = $1 and t.deleted_at is null
+      group by t.title order by max(t.created_at) desc limit 50`, [uid]);
+  const tags = await pool.query(
+    `select tg from tasks t join plans p on p.id = t.plan_id, unnest(t.tags) tg
+      where p.owner_id = $1 and t.deleted_at is null
+      group by tg order by count(*) desc, tg limit 50`, [uid]);
+  return { titles: titles.rows.map((r) => r.title), tags: tags.rows.map((r) => r.tg) };
+}
+
 async function exportAll(pool, user, extra = {}) {
   const uid = user.id;
   const q = async (sql) => (await pool.query(sql, [uid])).rows;
@@ -556,5 +569,5 @@ module.exports = {
   listTasks, createTask, updateTask, deleteTask, completeTask, reopenTask,
   createLog, deleteLog,
   review, evidence, createRetro, listRetros,
-  exportAll, meta, SORTS, METRICS,
+  exportAll, meta, suggestions, SORTS, METRICS,
 };
