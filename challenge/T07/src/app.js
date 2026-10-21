@@ -80,6 +80,7 @@ function readJson(req) {
 const ROUTES = [
   ['GET', /^\/api\/meta$/, (p) => svc.meta(p)],
   ['GET', /^\/api\/calendar$/, (p, u, m, q) => cal.range(p, u.id, q)],
+  ['GET', /^\/api\/suggestions$/, (p, u) => svc.suggestions(p, u.id)],
   ['GET', /^\/api\/plans$/, (p, u) => svc.listPlans(p, u.id)],
   ['POST', /^\/api\/plans$/, (p, u, m, q, b) => svc.createPlan(p, u.id, b), 201],
   ['GET', /^\/api\/plans\/(\d+)$/, (p, u, m) => svc.getPlan(p, u.id, idParam(m[1]))],

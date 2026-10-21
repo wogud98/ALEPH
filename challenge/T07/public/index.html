@@ -247,7 +247,9 @@
     <form id="task-form" class="form">
       <h3 id="task-form-title">할 일 추가</h3>
       <label id="task-plan-wrap">계획 <select name="plan_id"></select></label>
-      <label>할 일 <input name="title" required maxlength="200"></label>
+      <label>할 일 <input name="title" required maxlength="200" list="title-suggest" autocomplete="off"></label>
+      <datalist id="title-suggest"></datalist>
+      <datalist id="tag-suggest"></datalist>
       <div class="two">
         <label>마감일 <input name="due_date" type="date"></label>
         <label>우선순위
@@ -256,7 +258,7 @@
       </div>
       <div class="two">
         <label>예상 시간(분) <input name="estimated_minutes" type="number" min="0" step="1" value="0"></label>
-        <label>태그 <input name="tags" maxlength="200" placeholder="쉼표로 나눔: 웨이트, 하체"></label>
+        <label>태그 <input name="tags" maxlength="200" placeholder="쉼표로 나눔: 웨이트, 하체" list="tag-suggest" autocomplete="off"></label>
       </div>
       <label>설명 <textarea name="description" rows="2" maxlength="2000"></textarea></label>
       <div class="actions">

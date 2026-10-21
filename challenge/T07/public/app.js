@@ -476,6 +476,29 @@ function openTaskForm(t, preset) {
   }
   $('#task-dialog').showModal();
   f.elements.title.focus();
+  loadSuggestions();
+}
+
+// 자동완성: 전에 쓴 할 일 이름·태그를 칸 아래 목록으로 보여 준다
+async function loadSuggestions() {
+  try {
+    state.suggest = await api('GET', '/api/suggestions');
+  } catch {
+    return; // 목록이 없어도 입력은 그대로 된다
+  }
+  $('#title-suggest').replaceChildren(...state.suggest.titles.map((t) => el('option', { value: t })));
+  renderTagSuggest();
+}
+
+// 태그 칸은 쉼표로 여러 개를 적으므로, 마지막 조각만 바꾼 값을 후보로 둔다 ("웨이트, 하" → "웨이트, 하체")
+function renderTagSuggest() {
+  if (!state.suggest) return;
+  const input = $('#task-form').elements.tags;
+  const parts = input.value.split(',');
+  parts.pop();
+  const used = new Set(parts.map((s) => s.trim()).filter(Boolean));
+  const prefix = parts.length ? parts.map((s) => s.trim()).filter(Boolean).join(', ') + ', ' : '';
+  $('#tag-suggest').replaceChildren(...state.suggest.tags.filter((g) => !used.has(g)).map((g) => el('option', { value: prefix + g })));
 }
 
 async function submitTask(e) {
@@ -1413,6 +1436,7 @@ async function init() {
   $('#plan-form').addEventListener('submit', submitPlan);
   $('#add-task-btn').addEventListener('click', () => openTaskForm(null));
   $('#task-form').addEventListener('submit', submitTask);
+  $('#task-form').elements.tags.addEventListener('input', renderTagSuggest);
   for (const c of document.querySelectorAll('[data-cancel]')) {
     c.addEventListener('click', () => {
       const dlg = c.closest('dialog');

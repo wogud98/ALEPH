@@ -311,6 +311,23 @@ test('달력 끌기: 여러 날을 끌면 그 기간으로 새 일정(계획)이
   assert.deepEqual(t, [{ due_date: to }]);
 });
 
+test('자동완성: 할 일 칸에 전에 쓴 이름, 태그 칸에 전에 쓴 태그가 후보로 뜬다', opts, async () => {
+  await page.goto(S.base + '/app#cal');
+  await page.locator('section.view[data-view=cal]').waitFor();
+  await page.click(`#cal-grid .cell[data-date="${seoulToday(1)}"]`);
+  await page.click('#day-add-task');
+  const opts = (sel) => page.$$eval(`${sel} option`, (os) => os.map((o) => o.value));
+  await page.waitForFunction(() => document.querySelectorAll('#title-suggest option').length > 0);
+  assert.equal(await page.getAttribute('#task-form [name=title]', 'list'), 'title-suggest');
+  assert.ok((await opts('#title-suggest')).includes('첫 할 일'));
+  assert.ok((await opts('#tag-suggest')).includes('e2e'));
+  await page.fill('#task-form [name=tags]', '새태그, ');
+  assert.ok((await opts('#tag-suggest')).includes('새태그, e2e'), '쉼표 뒤에는 앞 태그를 둔 채 다음 태그를 고른다');
+  await page.fill('#task-form [name=tags]', 'e2e, ');
+  assert.ok(!(await opts('#tag-suggest')).some((v) => v.endsWith(', e2e')), '이미 적은 태그는 다시 권하지 않는다');
+  await page.keyboard.press('Escape');
+});
+
 test('비밀번호 찾기: 가입하면 복구 코드를 한 번 보여 주고, 그 코드로 새 비밀번호를 정해 들어간다', opts, async () => {
   const ctx = await browser.newContext();
   const p = await ctx.newPage();
