@@ -1,0 +1,21 @@
+{
+  "name": "aleph-t08-intro-passkey",
+  "version": "1.0.0",
+  "private": true,
+  "description": "1번 소개 페이지에 나만 보는 자리를 붙이고 패스키(WebAuthn)로 잠금 (Node + PostgreSQL + SimpleWebAuthn)",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --test-concurrency=1 test/passkey.test.js",
+    "test:e2e": "node --test test/e2e.test.js",
+    "evidence": "node scripts/evidence.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@simplewebauthn/server": "13.3.3",
+    "pg": "^8.23.1"
+  }
+}
