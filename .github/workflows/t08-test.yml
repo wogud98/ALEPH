@@ -1,0 +1,58 @@
+name: T08 검증
+
+on:
+  push:
+    paths:
+      - 'challenge/T08/**'
+      - 'challenge/T01/index.html'
+      - '.github/workflows/t08-test.yml'
+  pull_request:
+    paths:
+      - 'challenge/T08/**'
+      - 'challenge/T01/index.html'
+      - '.github/workflows/t08-test.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pds
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: pds_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pds" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: challenge/T08
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - name: 패스키 API·DB 검사 (가상 인증기)
+        run: npm test
+        env:
+          # CI 안에서만 쓰는 일회용 검사 DB (비밀번호 없음, 외부에서 접근 불가)
+          TEST_DATABASE_URL: postgres://pds@localhost:5432/pds_test
+
+      - name: 브라우저 검사 (Chromium 가상 인증기)
+        run: |
+          npm i --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+        env:
+          TEST_DATABASE_URL: postgres://pds@localhost:5432/pds_test

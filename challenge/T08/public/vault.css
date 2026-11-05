@@ -1,0 +1,70 @@
+/* T08 나만 보는 자리. 1번 페이지의 색(--paper, --panel, --ink, --muted, --line, --sea, --route)을 그대로 쓴다. */
+.vault-border {
+  margin: 56px 0 0;
+  border-top: 3px dashed var(--route);
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding-top: 6px;
+  font-size: 0.875rem; font-weight: 700;
+}
+.vault-border-up { color: var(--muted); }
+.vault-border-down { color: var(--route); }
+
+.vault {
+  margin-top: 16px;
+  background: repeating-linear-gradient(135deg, var(--panel) 0 14px, #EEF2EC 14px 28px);
+  border: 1px solid var(--line); border-radius: 4px;
+  padding: 20px 24px 24px;
+}
+.vault-head h2 { font-size: 1.25rem; margin: 0 0 4px; }
+.vault-note { margin: 0; color: var(--muted); font-size: 0.9375rem; max-width: 52em; }
+.vault-status { min-height: 1.6em; margin: 10px 0; font-weight: 500; }
+.vault-status.err { color: var(--route); }
+.vault-status.ok { color: var(--sea); }
+
+.vault-locked-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px;
+}
+.vault-locked-msg { margin: 0; }
+.vault-signup { margin-top: 14px; }
+.vault-signup summary { cursor: pointer; color: var(--sea); font-weight: 500; }
+
+.vault-btn {
+  font: inherit; font-size: 0.9375rem; font-weight: 500;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--ink); border-radius: 999px;
+  padding: 6px 16px; cursor: pointer; white-space: nowrap;
+}
+.vault-btn.primary { background: var(--ink); color: var(--panel); }
+.vault-btn.small { padding: 2px 10px; font-size: 0.875rem; }
+.vault-btn.danger { border-color: var(--route); color: var(--route); }
+.vault-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.vault-form { display: grid; gap: 8px; margin-top: 12px; max-width: 30em; }
+.vault-form label { display: grid; gap: 2px; font-weight: 500; }
+.vault-form input, .vault-form select, .vault-form textarea {
+  font: inherit; font-weight: 400; color: var(--ink); background: #fff;
+  border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px;
+}
+.vault-form button { justify-self: start; }
+.hint { font-size: 0.875rem; color: var(--muted); font-weight: 400; margin: 0; }
+
+.vault-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+.vault-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 16px; }
+.vault-cols h3 { font-size: 1.0625rem; margin: 0 0 8px; }
+.count { color: var(--muted); font-weight: 400; }
+
+.items, .keys { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.items li, .keys li { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; }
+.items .kind { font-size: 0.8125rem; color: var(--sea); font-weight: 700; }
+.items .title { display: block; font-weight: 700; }
+.items .body { margin: 2px 0 0; font-size: 0.9375rem; white-space: pre-wrap; }
+.row { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.keys .meta { display: block; font-size: 0.875rem; color: var(--muted); }
+.keys .here { font-size: 0.8125rem; color: var(--route); font-weight: 700; margin-left: 4px; }
+
+@media (max-width: 900px) {
+  .vault { padding: 16px; }
+  .vault-cols { grid-template-columns: 1fr; gap: 24px; }
+}

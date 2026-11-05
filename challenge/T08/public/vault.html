@@ -1,0 +1,73 @@
+  <!-- T08: 여기부터 비공개. 이 틀에는 단추와 안내 글자만 있고 비공개 내용은 들어 있지 않다. -->
+  <div class="vault-border" role="separator" aria-label="여기까지 공개, 여기부터 비공개">
+    <span class="vault-border-up">▲ 여기까지 공개 · 누구나 볼 수 있어요</span>
+    <span class="vault-border-down">▼ 여기부터 비공개 · 패스키로 잠겨 있어요</span>
+  </div>
+
+  <section class="vault" id="vault" aria-labelledby="vault-title">
+    <div class="vault-head">
+      <h2 id="vault-title"><span class="lock" id="vault-lock" aria-hidden="true">🔒</span> 나만 보는 자리</h2>
+      <p class="vault-note">비밀번호는 없어요. 내 기기에 있는 패스키로만 열립니다. 이 아래 내용은 패스키를 확인한 뒤에 서버가 내려 주므로, 이 페이지의 소스에는 들어 있지 않아요. 심사하시는 분은 위쪽 공개 소개까지만 보시면 됩니다.</p>
+    </div>
+
+    <p class="vault-status" id="vault-status" role="status" aria-live="polite"></p>
+
+    <!-- 잠긴 상태 -->
+    <div id="vault-locked">
+      <div class="vault-locked-box">
+        <p class="vault-locked-msg">잠겨 있어요. 이 자리에는 준비 중인 프로젝트 메모, 지원하려는 곳, 스스로 쓰는 회고가 들어 있습니다.</p>
+        <button type="button" class="vault-btn primary" id="btn-login">패스키로 들어가기</button>
+      </div>
+      <details class="vault-signup">
+        <summary>처음이에요: 패스키로 새 계정 만들기</summary>
+        <form id="form-signup" class="vault-form" autocomplete="off">
+          <label>아이디 <span class="hint">영문 소문자·숫자·밑줄 3~30자, 실명 말고 아무 이름</span>
+            <input type="text" name="username" required pattern="[a-z0-9_]{3,30}" maxlength="30" autocapitalize="none" spellcheck="false"></label>
+          <label>이 패스키 이름 <span class="hint">예: 내 휴대폰, 회사 노트북</span>
+            <input type="text" name="name" maxlength="40"></label>
+          <button type="submit" class="vault-btn">패스키 만들기</button>
+          <p class="hint">기기가 열쇠 한 쌍을 만들어 공개키만 서버로 보내요. 개인키는 기기를 떠나지 않습니다.</p>
+        </form>
+      </details>
+    </div>
+
+    <!-- 열린 상태 (패스키로 들어온 뒤 vault.js가 채운다) -->
+    <div id="vault-open" hidden>
+      <div class="vault-bar">
+        <span><strong id="who"></strong> 님으로 들어와 있어요</span>
+        <button type="button" class="vault-btn" id="btn-logout">로그아웃</button>
+      </div>
+
+      <div class="vault-cols">
+        <section aria-labelledby="items-title">
+          <h3 id="items-title">비공개 항목 <span class="count" id="items-count"></span></h3>
+          <ul class="items" id="items"></ul>
+          <p class="hint" id="items-empty" hidden>아직 항목이 없어요.
+            <button type="button" class="vault-btn small" id="btn-examples">만들어 넣은 예시 3개 넣기</button></p>
+          <form id="form-item" class="vault-form" autocomplete="off">
+            <label>종류
+              <select name="kind">
+                <option value="project">준비 중인 프로젝트 메모</option>
+                <option value="apply">지원하려는 곳</option>
+                <option value="retro">스스로 쓰는 회고</option>
+              </select></label>
+            <label>제목 <input type="text" name="title" required maxlength="80"></label>
+            <label>내용 <textarea name="body" rows="2" maxlength="1000"></textarea></label>
+            <button type="submit" class="vault-btn">항목 더하기</button>
+            <p class="hint">진짜 연락처·주민번호 같은 개인정보는 넣지 마세요. 만들어 넣은 내용으로 충분해요.</p>
+          </form>
+        </section>
+
+        <section aria-labelledby="keys-title">
+          <h3 id="keys-title">내 패스키 <span class="count" id="keys-count"></span></h3>
+          <ul class="keys" id="keys"></ul>
+          <p class="hint" id="keys-warn"></p>
+          <form id="form-add" class="vault-form" autocomplete="off">
+            <label>새 패스키 이름 <span class="hint">다른 기기·다른 브라우저·보안 키에서 등록하세요</span>
+              <input type="text" name="name" maxlength="40"></label>
+            <button type="submit" class="vault-btn">패스키 하나 더 등록</button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </section>
