@@ -758,5 +758,25 @@
       "record_timezone": "Asia/Seoul",
       "record_date": "2026-11-13"
     }
+  },
+  {
+    "record_id": "usd-krw-2026-11-14",
+    "signal_id": "usd-krw",
+    "record_date": "2026-11-14",
+    "normalized_value": 1336.179911,
+    "unit": "KRW/USD",
+    "first_fetched_at": "2026-11-14T07:38:15.833Z",
+    "last_fetched_at": "2026-11-14T07:38:15.833Z",
+    "reading": {
+      "signal_id": "usd-krw",
+      "normalized_value": 1336.179911,
+      "unit": "KRW/USD",
+      "source_name": "ExchangeRate-API (Open Access)",
+      "source_url": "https://open.er-api.com/v6/latest/USD",
+      "source_time": "2026-11-14T00:02:31.000Z",
+      "fetched_at": "2026-11-14T07:38:15.833Z",
+      "record_timezone": "Asia/Seoul",
+      "record_date": "2026-11-14"
+    }
   }
 ]
