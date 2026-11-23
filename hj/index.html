@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>임한주 공식 홈페이지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;600;700&family=Nanum+Pen+Script&display=swap">
+<style>
+:root{--paper:#E6ECDF;--ink:#17231A;--olive:#4B5A2F;--orange:#FF5E1A;--red:#D1202F;--white:#FFFFFF;--line:#17231A;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans KR',sans-serif;line-height:1.65;background-image:repeating-linear-gradient(0deg,transparent 0 31px,rgba(23,35,26,.06) 31px 32px)}
+.wrap{max-width:720px;margin:0 auto;padding:20px 18px 64px;display:flex;flex-direction:column;gap:34px}
+.top{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;letter-spacing:1px}
+.top span:last-child{background:var(--olive);color:var(--white);padding:3px 10px}
+h1,h2{font-family:'Do Hyeon',sans-serif;font-weight:400;margin:0;line-height:1.05}
+h1{font-size:clamp(54px,17vw,92px)}
+h2{font-size:34px;display:inline-block;background:var(--ink);color:var(--paper);padding:2px 14px}
+.hero{display:grid;gap:24px;grid-template-columns:1fr;align-items:center}
+@media(min-width:620px){.hero{grid-template-columns:1.1fr .9fr}}
+.sub{font-family:'Nanum Pen Script',cursive;font-size:30px;color:var(--olive);line-height:1.2;margin-top:12px}
+.hl{background:var(--orange);color:var(--ink);padding:0 10px;display:inline-block;transform:rotate(-2deg)}
+.frame{position:relative;background:var(--white);border:3px solid var(--ink);padding:12px 12px 40px;box-shadow:8px 8px 0 var(--ink);transform:rotate(2deg);max-width:340px;margin:0 auto}
+.frame img{display:block;width:100%;height:auto;border:2px solid var(--ink)}
+.frame .cap{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-family:'Nanum Pen Script',cursive;font-size:26px}
+.tape{position:absolute;top:-14px;left:50%;width:96px;height:28px;margin-left:-48px;background:rgba(255,94,26,.7);transform:rotate(-4deg)}
+.stamp{position:absolute;right:-14px;top:36px;border:4px solid var(--red);color:var(--red);background:rgba(255,255,255,.88);font-family:'Do Hyeon',sans-serif;font-size:26px;padding:2px 12px;transform:rotate(12deg);text-align:center;line-height:1.1}
+.card{background:var(--white);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);padding:20px 20px}
+section{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+section>.card{width:100%}
+dl{display:grid;grid-template-columns:96px 1fr;gap:10px 14px;margin:0}
+dt{font-weight:700;color:var(--olive);font-size:14px;padding-top:2px}
+dd{margin:0;font-weight:600}
+.path{display:flex;flex-direction:column;gap:0}
+.step{display:flex;gap:14px;align-items:flex-start;padding-bottom:16px;position:relative}
+.step:not(:last-child)::before{content:"";position:absolute;left:11px;top:26px;bottom:0;border-left:3px dashed var(--olive)}
+.dot{flex:none;width:24px;height:24px;border-radius:50%;background:var(--orange);border:3px solid var(--ink);margin-top:3px}
+.step b{display:block;font-size:17px}
+.step small{color:#41503f;font-size:14px}
+.bar{height:26px;border:3px solid var(--ink);background:var(--paper);position:relative;overflow:hidden}
+.fill{height:100%;background:var(--orange);width:0;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+.row{display:flex;justify-content:space-between;gap:10px;font-weight:700;margin-bottom:4px;font-size:15px}
+.btn{font-family:'Do Hyeon',sans-serif;font-size:22px;background:var(--orange);color:var(--ink);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:8px 18px;cursor:pointer;min-height:48px}
+.btn:active{transform:translate(4px,4px);box-shadow:none}
+.btn:focus-visible{outline:4px solid var(--olive);outline-offset:3px}
+.note{font-family:'Nanum Pen Script',cursive;font-size:26px;line-height:1.25;color:var(--red);min-height:34px}
+.chat{display:flex;flex-direction:column;gap:10px}
+.b{max-width:86%;padding:10px 14px;border:3px solid var(--ink);font-weight:600}
+.b.l{align-self:flex-start;background:var(--paper)}
+.b.r{align-self:flex-end;background:var(--orange)}
+.b small{display:block;font-size:12px;opacity:.75}
+.rumor{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 0;border-bottom:2px dashed var(--olive)}
+.rumor:last-child{border-bottom:0}
+.v{font-family:'Do Hyeon',sans-serif;font-size:20px;border:3px solid var(--red);color:var(--red);padding:0 10px;transform:rotate(-4deg);white-space:nowrap}
+.roul{font-family:'Do Hyeon',sans-serif;font-size:30px;text-align:center;border:3px dashed var(--ink);padding:20px 10px;min-height:96px;display:flex;align-items:center;justify-content:center;background:var(--paper);line-height:1.25}
+.pic{max-width:300px;align-self:center;transform:rotate(-2deg)}
+.mos{filter:blur(6px);-webkit-user-select:none;user-select:none;display:inline-block}
+.foot{font-size:13px;opacity:.8;text-align:center}
+.shake{animation:sh .5s}
+@keyframes sh{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@media (prefers-reduced-motion:reduce){.fill{transition:none}.shake{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top"><span>인사기록 / 극비 아님</span><span>임한주 공식</span></div>
+
+<header class="hero">
+<div>
+<h1>임한주<br><span class="hl">중대장</span></h1>
+<div class="sub">멸치라는 소문이 있다.<br>본인은 말을 아낀다.</div>
+</div>
+<div class="frame">
+<div class="tape"></div>
+<img src="masked.jpg" alt="선글라스와 마스크로 얼굴을 가린 임한주">
+<div class="stamp">신원<br>비공개</div>
+<div class="cap">공식 프로필 (얼굴은 영업 비밀)</div>
+</div>
+</header>
+
+<section>
+<h2>인사기록카드</h2>
+<div class="card">
+<dl>
+<dt>이름</dt><dd>임한주</dd>
+<dt>출생</dt><dd>1998년생</dd>
+<dt>현 보직</dt><dd><span class="mos" aria-label="모자이크 처리됨">가나다 라마바사아</span> 중대장</dd>
+<dt>특기</dt><dd>컨텐츠 기획, 상황 파악, 모른 척하기</dd>
+<dt>전역</dt><dd>반 개월 남음</dd>
+</dl>
+</div>
+</section>
+
+<section>
+<h2>근무 경력</h2>
+<div class="card path">
+<div class="step"><div class="dot"></div><div><b><span class="mos" aria-label="모자이크 처리됨">가나다라 마바사아자</span></b><small><span class="mos" aria-label="모자이크 처리됨">차카타파하 가나다라마바사</span> 근무</small></div></div>
+<div class="step"><div class="dot"></div><div><b>예비군 작전장교 밑</b><small>열심히 굴려짐</small></div></div>
+<div class="step"><div class="dot"></div><div><b><span class="mos" aria-label="모자이크 처리됨">가나다 라마바사아</span> 중대장</b><small>현재 근무 중. 중대원 앞에서는 멀쩡한 척</small></div></div>
+</div>
+</section>
+
+<section>
+<h2>전역 준비 현황</h2>
+<div class="card" style="display:flex;flex-direction:column;gap:12px">
+<div><div class="row"><span>전역 준비율</span><span id="p1">0%</span></div><div class="bar"><div class="fill" id="f1"></div></div></div>
+<div><div class="row"><span>전역까지 남은 기간</span><span>반 개월</span></div><div class="bar"><div class="fill" id="f2" style="background:var(--olive)"></div></div></div>
+<button class="btn" id="b1" type="button" style="align-self:flex-start">전역 준비 시작하기</button>
+<div class="note" id="n1"></div>
+</div>
+</section>
+
+<section>
+<h2>고충 상담소</h2>
+<div class="card chat">
+<div class="b l"><small>MZ 소대장 (재연)</small>중대장님, 이거 꼭 지금 해야 하는 이유가 있을까요?</div>
+<div class="b r"><small>임한주 중대장 (재연)</small>...일단 해 보자.</div>
+<div class="b l"><small>MZ 소대장 (재연)</small>넵. 근데 퇴근은 몇 시에 하나요?</div>
+<div class="b r"><small>임한주 중대장 (재연)</small>(말없이 먼 산을 본다)</div>
+<div class="note" style="color:var(--olive);font-size:22px">※ 실제 대화가 아닌 친구들의 상상 재연입니다.</div>
+</div>
+</section>
+
+<section>
+<h2>컨텐츠 대장</h2>
+<div class="card" style="display:flex;flex-direction:column;gap:14px">
+<div>친구들끼리 놀러 가면 기획은 늘 이 사람 담당. 오늘의 컨텐츠를 뽑아 보세요.</div>
+<div class="roul" id="r1">버튼을 누르세요</div>
+<button class="btn" id="b2" type="button" style="align-self:flex-start">컨텐츠 뽑기</button>
+</div>
+</section>
+
+<section>
+<h2>매력 자각 테스트</h2>
+<div class="card" style="display:flex;flex-direction:column;gap:12px">
+<div><div class="row"><span>주변 반응</span><span>100%</span></div><div class="bar"><div class="fill" id="f3" style="background:var(--red)"></div></div></div>
+<div><div class="row"><span>본인 인식</span><span id="p4">?</span></div><div class="bar"><div class="fill" id="f4"></div></div></div>
+<button class="btn" id="b3" type="button" style="align-self:flex-start">측정하기</button>
+<div class="note" id="n3"></div>
+</div>
+</section>
+
+<section>
+<h2>소문 팩트체크</h2>
+<div class="card">
+<div class="rumor"><span>멸치 중대장이다</span><span class="v">판정 보류</span></div>
+<div class="rumor"><span>여자에는 관심 없다</span><span class="v">본인 주장</span></div>
+<div class="rumor"><span>인기는 많은데 본인은 모르는 척 꺼드럭</span><span class="v">본인만 모름</span></div>
+<div class="rumor"><span>애가 좀 웃기다</span><span class="v">사실</span></div>
+</div>
+</section>
+
+<section>
+<h2>증명사진 후보</h2>
+<div class="frame pic">
+<div class="tape"></div>
+<img src="selfie.jpg" alt="눈을 크게 뜨고 입을 다문 채 웃는 임한주의 셀카">
+<div class="cap">이쁜 여자를 발견했을 때 표정</div>
+</div>
+</section>
+
+<div class="foot">군 경력의 부대·위치 정보는 모자이크 처리했습니다.<br>본 페이지는 친구들의 애정으로 제작되었으며 본인 동의는 받지 않았습니다.</div>
+</div>
+
+<script>
+var $=function(i){return document.getElementById(i)};
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+$('f2').style.width='50%';
+$('b1').onclick=function(){
+var n=$('n1');n.textContent='시작하지 않았습니다. 준비율 0% 유지.';
+$('b1').classList.remove('shake');void $('b1').offsetWidth;$('b1').classList.add('shake');
+};
+var IDEAS=['모르는 척 연기 대결','휴게소 우동 먹방 순위 매기기','여행 내내 몰래카메라 한 명 정하기','숙소에서 즉석 시상식','한 명씩 뽑는 오늘의 말투 벌칙','거울 앞 단체 포즈 챌린지','가장 어색한 단체사진 찍기','지나가는 사람 이름 맞히기'];
+var last=-1;
+$('b2').onclick=function(){
+var el=$('r1'),i;
+do{i=Math.floor(Math.random()*IDEAS.length)}while(i===last);last=i;
+if(reduce){el.textContent=IDEAS[i];return}
+var k=0,t=setInterval(function(){el.textContent=IDEAS[Math.floor(Math.random()*IDEAS.length)];if(++k>9){clearInterval(t);el.textContent=IDEAS[i]}},70);
+};
+setTimeout(function(){$('f3').style.width='100%'},300);
+$('b3').onclick=function(){
+$('f4').style.width='0%';$('p4').textContent='측정 중';
+setTimeout(function(){$('p4').textContent='0%';$('n3').textContent='측정 불가. 본인이 모른 척하고 있습니다.';
+$('b3').classList.remove('shake');void $('b3').offsetWidth;$('b3').classList.add('shake')},reduce?0:1200);
+};
+</script>
+</body>
+</html>
