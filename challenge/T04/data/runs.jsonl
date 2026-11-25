@@ -97,3 +97,4 @@
 {"at":"2026-11-24T00:57:43.520Z","outcome":"success","action":"insert","record_date":"2026-11-24","value":1343.513843,"source_time":"2026-11-24T00:02:31.000Z","http_status":200}
 {"at":"2026-11-24T10:58:29.538Z","outcome":"success","action":"update","record_date":"2026-11-24","value":1343.513843,"source_time":"2026-11-24T00:02:31.000Z","http_status":200}
 {"at":"2026-11-24T23:03:23.979Z","outcome":"success","action":"skip_same_source","record_date":"2026-11-25","source_time":"2026-11-24T00:02:31.000Z","http_status":200}
+{"at":"2026-11-25T09:52:51.475Z","outcome":"success","action":"insert","record_date":"2026-11-25","value":1343.042517,"source_time":"2026-11-25T00:02:31.000Z","http_status":200}
