@@ -3,14 +3,14 @@
     "freshness": "fresh",
     "error_code": "none"
   },
-  "last_success_at": "2026-11-26T22:23:40.050Z",
+  "last_success_at": "2026-11-27T09:42:10.131Z",
   "last_success_record_id": "usd-krw-2026-11-27",
   "last_run": {
-    "at": "2026-11-26T22:23:40.050Z",
+    "at": "2026-11-27T09:42:10.131Z",
     "outcome": "success",
     "error_code": "none",
     "http_status": 200,
     "retry_after_seconds": null,
-    "message": "일별 기록 추가"
+    "message": "일별 기록 갱신"
   }
 }
